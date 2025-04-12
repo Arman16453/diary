@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Stock - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Update Stock</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('dairy_holder.update_stock') }}">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <label for="transaction_type" class="form-label">Transaction Type</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="transaction_type" id="addition" value="addition" checked>
+                                    <label class="form-check-label" for="addition">
+                                        <i class="fas fa-arrow-circle-up text-success me-1"></i> Stock Addition
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="transaction_type" id="removal" value="removal">
+                                    <label class="form-check-label" for="removal">
+                                        <i class="fas fa-arrow-circle-down text-danger me-1"></i> Stock Removal
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <label for="quantity" class="form-label">Quantity (Liters)</label>
+                            <input type="number" step="0.1" min="0.1" class="form-control" id="quantity" name="quantity" required>
+                        </div>
+                    </div>
+                    
+                    <div id="quality-fields">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="fat_percentage" class="form-label">Fat Percentage (%)</label>
+                                <input type="number" step="0.1" min="0" max="10" class="form-control" id="fat_percentage" name="fat_percentage">
+                                <div class="form-text">Required for stock addition</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="snf_percentage" class="form-label">SNF Percentage (%)</label>
+                                <input type="number" step="0.1" min="0" max="10" class="form-control" id="snf_percentage" name="snf_percentage">
+                                <div class="form-text">Required for stock addition</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{{ url_for('dairy_holder.stock') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Update Stock</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const additionRadio = document.getElementById('addition');
+        const removalRadio = document.getElementById('removal');
+        const qualityFields = document.getElementById('quality-fields');
+        const fatPercentage = document.getElementById('fat_percentage');
+        const snfPercentage = document.getElementById('snf_percentage');
+        
+        function toggleQualityFields() {
+            if (additionRadio.checked) {
+                qualityFields.style.display = 'block';
+                fatPercentage.setAttribute('required', '');
+                snfPercentage.setAttribute('required', '');
+            } else {
+                qualityFields.style.display = 'none';
+                fatPercentage.removeAttribute('required');
+                snfPercentage.removeAttribute('required');
+            }
+        }
+        
+        // Initial setup
+        toggleQualityFields();
+        
+        // Add event listeners
+        additionRadio.addEventListener('change', toggleQualityFields);
+        removalRadio.addEventListener('change', toggleQualityFields);
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Milk Transaction - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Add New Milk Transaction</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('milk_seller.add_transaction') }}">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="quantity" class="form-label">Quantity (Liters)</label>
+                            <input type="number" step="0.1" min="0.1" class="form-control" id="quantity" name="quantity" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="price_per_liter" class="form-label">Price per Liter (₹)</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="price_per_liter" name="price_per_liter" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="fat_percentage" class="form-label">Fat Percentage (%)</label>
+                            <input type="number" step="0.1" min="0" max="10" class="form-control" id="fat_percentage" name="fat_percentage" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="snf_percentage" class="form-label">SNF Percentage (%)</label>
+                            <input type="number" step="0.1" min="0" max="10" class="form-control" id="snf_percentage" name="snf_percentage" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-text mb-2">
+                                            <strong>Total Amount:</strong> ₹<span id="total_amount">0.00</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-text">
+                                            <strong>Payment Status:</strong> Pending by default
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{{ url_for('milk_seller.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Add Transaction</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Calculate total amount dynamically
+    document.addEventListener('DOMContentLoaded', function() {
+        const quantityInput = document.getElementById('quantity');
+        const pricePerLiterInput = document.getElementById('price_per_liter');
+        const totalAmountOutput = document.getElementById('total_amount');
+        
+        function calculateTotal() {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const pricePerLiter = parseFloat(pricePerLiterInput.value) || 0;
+            const total = (quantity * pricePerLiter).toFixed(2);
+            totalAmountOutput.textContent = total;
+        }
+        
+        quantityInput.addEventListener('input', calculateTotal);
+        pricePerLiterInput.addEventListener('input', calculateTotal);
+    });
+</script>
+{% endblock %} 

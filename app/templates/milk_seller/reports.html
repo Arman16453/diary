@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Transaction Reports</h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Filter by Date</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('milk_seller.reports') }}" class="row g-3">
+            <div class="col-md-4">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+            </div>
+            <div class="col-md-4">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Filter</button>
+                <a href="{{ url_for('milk_seller.reports') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Transaction Summary</h5>
+        <button class="btn btn-sm btn-outline-primary" onclick="exportTableToCSV('milk_transactions.csv')">
+            <i class="fas fa-download me-1"></i> Export CSV
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="transactionsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Quantity (L)</th>
+                        <th>Price (₹/L)</th>
+                        <th>Fat %</th>
+                        <th>SNF %</th>
+                        <th>Total Amount (₹)</th>
+                        <th>Payment Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.date.strftime('%d-%m-%Y') }}</td>
+                            <td>{{ "%.1f"|format(transaction.quantity) }}</td>
+                            <td>{{ "%.2f"|format(transaction.price_per_liter) }}</td>
+                            <td>{{ "%.1f"|format(transaction.fat_percentage) }}</td>
+                            <td>{{ "%.1f"|format(transaction.snf_percentage) }}</td>
+                            <td>₹{{ "%.2f"|format(transaction.total_amount) }}</td>
+                            <td>
+                                {% if transaction.is_paid %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No transactions found</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-light fw-bold">
+                        <td>Totals</td>
+                        <td>{{ "%.1f"|format(transactions|sum(attribute='quantity')) }}</td>
+                        <td>-</td>
+                        <td>{{ "%.1f"|format(transactions|sum(attribute='fat_percentage') / transactions|length) if transactions else 0 }}</td>
+                        <td>{{ "%.1f"|format(transactions|sum(attribute='snf_percentage') / transactions|length) if transactions else 0 }}</td>
+                        <td>₹{{ "%.2f"|format(transactions|sum(attribute='total_amount')) }}</td>
+                        <td>-</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Function to export table data to CSV
+    function exportTableToCSV(filename) {
+        const csv = [];
+        const rows = document.querySelectorAll('#transactionsTable tr');
+        
+        for (let i = 0; i < rows.length; i++) {
+            const row = [], cols = rows[i].querySelectorAll('td, th');
+            
+            for (let j = 0; j < cols.length; j++) {
+                // Clean the text content (remove currency symbols, etc.)
+                let data = cols[j].textContent.trim().replace('₹', '');
+                
+                // Replace 'Paid' and 'Pending' with simple text
+                if (data === 'Paid' || data === 'Pending') {
+                    data = data;
+                }
+                
+                // Add quotes around the field
+                row.push('"' + data + '"');
+            }
+            
+            csv.push(row.join(','));
+        }
+        
+        // Download CSV file
+        downloadCSV(csv.join('\n'), filename);
+    }
+    
+    function downloadCSV(csv, filename) {
+        const csvFile = new Blob([csv], {type: 'text/csv'});
+        const downloadLink = document.createElement('a');
+        
+        // Create download link
+        downloadLink.download = filename;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = 'none';
+        
+        // Add to DOM, click, and remove
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+</script>
+{% endblock %} 

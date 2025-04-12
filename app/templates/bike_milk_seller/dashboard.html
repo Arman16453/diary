@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Bike Seller Dashboard - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Bike Seller Dashboard</h1>
+    <a href="{{ url_for('bike_milk_seller.add_delivery') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> Add Delivery
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4 bg-primary text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Total Milk Delivered</h5>
+                <h2 class="display-4">{{ "%.2f"|format(total_delivered) }}</h2>
+                <p class="mb-0">Liters</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4 bg-success text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Total Earnings</h5>
+                <h2 class="display-4">₹{{ "%.2f"|format(total_earnings) }}</h2>
+                <p class="mb-0">All Time</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4 bg-warning text-dark">
+            <div class="card-body text-center">
+                <h5 class="card-title">Pending Payment</h5>
+                <h2 class="display-4">₹{{ "%.2f"|format(pending_payment) }}</h2>
+                <p class="mb-0">Outstanding</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h5 class="mb-0">Recent Deliveries</h5>
+                <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Quantity (L)</th>
+                                <th>Price (₹/L)</th>
+                                <th>Total Amount (₹)</th>
+                                <th>Payment Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for delivery in deliveries %}
+                                <tr>
+                                    <td>{{ delivery.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ delivery.customer_name }}</td>
+                                    <td>{{ "%.1f"|format(delivery.quantity) }}</td>
+                                    <td>{{ "%.2f"|format(delivery.price_per_liter) }}</td>
+                                    <td>₹{{ "%.2f"|format(delivery.total_amount) }}</td>
+                                    <td>
+                                        {% if delivery.is_paid %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not delivery.is_paid %}
+                                            <form method="POST" action="{{ url_for('bike_milk_seller.update_payment', delivery_id=delivery.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check me-1"></i> Mark Paid
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No deliveries found</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h5 class="mb-0">Quick Links</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('bike_milk_seller.customer_list') }}" class="btn btn-outline-primary w-100 py-3">
+                            <i class="fas fa-users fa-2x mb-2"></i><br>
+                            Customer List
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('bike_milk_seller.add_delivery') }}" class="btn btn-outline-success w-100 py-3">
+                            <i class="fas fa-truck fa-2x mb-2"></i><br>
+                            New Delivery
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-outline-info w-100 py-3">
+                            <i class="fas fa-list-alt fa-2x mb-2"></i><br>
+                            All Deliveries
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add any dashboard-specific JavaScript here
+</script>
+{% endblock %} 

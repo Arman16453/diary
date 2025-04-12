@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Milk Seller Dashboard - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Milk Seller Dashboard</h1>
+    <a href="{{ url_for('milk_seller.add_transaction') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> Add Transaction
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4 bg-primary text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Total Milk Supplied</h5>
+                <h2 class="display-4">{{ "%.2f"|format(total_milk) }}</h2>
+                <p class="mb-0">Liters</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4 bg-success text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Total Earnings</h5>
+                <h2 class="display-4">₹{{ "%.2f"|format(total_earnings) }}</h2>
+                <p class="mb-0">All Time</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4 bg-warning text-dark">
+            <div class="card-body text-center">
+                <h5 class="card-title">Pending Payment</h5>
+                <h2 class="display-4">₹{{ "%.2f"|format(pending_payment) }}</h2>
+                <p class="mb-0">Outstanding</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h5 class="mb-0">Recent Transactions</h5>
+                <a href="{{ url_for('milk_seller.transactions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Quantity (L)</th>
+                                <th>Price (₹/L)</th>
+                                <th>Fat %</th>
+                                <th>SNF %</th>
+                                <th>Total Amount (₹)</th>
+                                <th>Payment Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                                <tr>
+                                    <td>{{ transaction.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ "%.1f"|format(transaction.quantity) }}</td>
+                                    <td>{{ "%.2f"|format(transaction.price_per_liter) }}</td>
+                                    <td>{{ "%.1f"|format(transaction.fat_percentage) }}</td>
+                                    <td>{{ "%.1f"|format(transaction.snf_percentage) }}</td>
+                                    <td>₹{{ "%.2f"|format(transaction.total_amount) }}</td>
+                                    <td>
+                                        {% if transaction.is_paid %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No transactions found</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add any dashboard-specific JavaScript here
+</script>
+{% endblock %} 
