@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Milk Buyer Dashboard</h1>
+        <a href="{{ url_for('milk_buyer.add_purchase') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Purchase
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Statistics Cards -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Purchased</h5>
+                    <h2 class="mb-0">{{ "%.1f"|format(total_purchased) }} L</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{{ url_for('milk_buyer.purchases') }}" class="text-white">View Details</a>
+                    <i class="fas fa-angle-right text-white"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Spent</h5>
+                    <h2 class="mb-0">₹{{ "%.2f"|format(total_spent) }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{{ url_for('milk_buyer.reports') }}" class="text-white">View Reports</a>
+                    <i class="fas fa-angle-right text-white"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Payment</h5>
+                    <h2 class="mb-0">₹{{ "%.2f"|format(pending_payment) }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{{ url_for('milk_buyer.purchases') }}?payment_status=pending" class="text-dark">View Pending</a>
+                    <i class="fas fa-angle-right text-dark"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Suppliers</h5>
+                    <h2 class="mb-0"><i class="fas fa-users"></i></h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a href="{{ url_for('milk_buyer.suppliers') }}" class="text-white">View Suppliers</a>
+                    <i class="fas fa-angle-right text-white"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Purchases -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                    <h5 class="mb-0">Recent Purchases</h5>
+                    <a href="{{ url_for('milk_buyer.purchases') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Supplier</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if purchases %}
+                                    {% for purchase in purchases %}
+                                        <tr>
+                                            <td>{{ purchase.date.strftime('%d-%m-%Y') }}</td>
+                                            <td>{{ purchase.supplier_name }}</td>
+                                            <td>{{ "%.1f"|format(purchase.quantity) }} L</td>
+                                            <td>₹{{ "%.2f"|format(purchase.total_amount) }}</td>
+                                            <td>
+                                                {% if purchase.is_paid %}
+                                                    <span class="badge bg-success">Paid</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if not purchase.is_paid %}
+                                                    <form method="POST" action="{{ url_for('milk_buyer.update_payment', purchase_id=purchase.id) }}" style="display: inline;">
+                                                        <button type="submit" class="btn btn-sm btn-success">
+                                                            <i class="fas fa-check me-1"></i> Mark Paid
+                                                        </button>
+                                                    </form>
+                                                {% else %}
+                                                    <button class="btn btn-sm btn-outline-secondary" disabled>Paid on {{ purchase.payment_date.strftime('%d-%m-%Y') }}</button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">No purchases found</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <a href="{{ url_for('milk_buyer.suppliers') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-users fa-2x mb-2"></i><br>
+                                Suppliers List
+                            </a>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <a href="{{ url_for('milk_buyer.add_purchase') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-shopping-cart fa-2x mb-2"></i><br>
+                                New Purchase
+                            </a>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <a href="{{ url_for('milk_buyer.reports') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                                View Reports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

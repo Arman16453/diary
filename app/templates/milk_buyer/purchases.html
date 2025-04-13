@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>All Purchases</h1>
+        <a href="{{ url_for('milk_buyer.add_purchase') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Purchase
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Filter Purchases</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('milk_buyer.purchases') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="supplier_name" class="form-label">Supplier Name</label>
+                    <input type="text" class="form-control" id="supplier_name" name="supplier_name" value="{{ request.args.get('supplier_name', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="milk_type" class="form-label">Milk Type</label>
+                    <select class="form-select" id="milk_type" name="milk_type">
+                        <option value="">All Types</option>
+                        <option value="cow" {% if request.args.get('milk_type') == 'cow' %}selected{% endif %}>Cow</option>
+                        <option value="buffalo" {% if request.args.get('milk_type') == 'buffalo' %}selected{% endif %}>Buffalo</option>
+                        <option value="mixed" {% if request.args.get('milk_type') == 'mixed' %}selected{% endif %}>Mixed</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="payment_status" class="form-label">Payment Status</label>
+                    <select class="form-select" id="payment_status" name="payment_status">
+                        <option value="">All</option>
+                        <option value="paid" {% if request.args.get('payment_status') == 'paid' %}selected{% endif %}>Paid</option>
+                        <option value="pending" {% if request.args.get('payment_status') == 'pending' %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary me-2">Filter</button>
+                    <a href="{{ url_for('milk_buyer.purchases') }}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Supplier</th>
+                            <th>Milk Type</th>
+                            <th>Quality</th>
+                            <th>Quantity (L)</th>
+                            <th>Fat %</th>
+                            <th>SNF %</th>
+                            <th>Rate (₹/L)</th>
+                            <th>Amount (₹)</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if purchases.items %}
+                            {% for purchase in purchases.items %}
+                                <tr>
+                                    <td>{{ purchase.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ purchase.supplier_name }}</td>
+                                    <td>{{ purchase.milk_type|capitalize }}</td>
+                                    <td>{{ purchase.quality_grade }}</td>
+                                    <td>{{ "%.1f"|format(purchase.quantity) }}</td>
+                                    <td>{{ "%.1f"|format(purchase.fat_percentage) }}</td>
+                                    <td>{{ "%.1f"|format(purchase.snf_percentage) }}</td>
+                                    <td>{{ "%.2f"|format(purchase.price_per_liter) }}</td>
+                                    <td>{{ "%.2f"|format(purchase.total_amount) }}</td>
+                                    <td>
+                                        {% if purchase.is_paid %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not purchase.is_paid %}
+                                            <form method="POST" action="{{ url_for('milk_buyer.update_payment', purchase_id=purchase.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check me-1"></i> Mark Paid
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <small class="text-muted">Paid on {{ purchase.payment_date.strftime('%d-%m-%Y') }}</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">No purchases found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if purchases.pages > 1 %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if purchases.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('milk_buyer.purchases', page=purchases.prev_num, supplier_name=request.args.get('supplier_name', ''), milk_type=request.args.get('milk_type', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), payment_status=request.args.get('payment_status', '')) }}">Previous</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in purchases.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num == purchases.page %}
+                            <li class="page-item active">
+                                <a class="page-link" href="#">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('milk_buyer.purchases', page=page_num, supplier_name=request.args.get('supplier_name', ''), milk_type=request.args.get('milk_type', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), payment_status=request.args.get('payment_status', '')) }}">{{ page_num }}</a>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#">...</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if purchases.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('milk_buyer.purchases', page=purchases.next_num, supplier_name=request.args.get('supplier_name', ''), milk_type=request.args.get('milk_type', ''), start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', ''), payment_status=request.args.get('payment_status', '')) }}">Next</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

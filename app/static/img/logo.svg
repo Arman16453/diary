@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d6efd" />
+      <stop offset="100%" stop-color="#0a58ca" />
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="90" fill="white" stroke="url(#gradient)" stroke-width="5" />
+  <path d="M50,70 C50,50 70,40 90,45 C110,40 130,50 130,70 L130,140 C130,150 120,160 110,160 L70,160 C60,160 50,150 50,140 Z" fill="white" stroke="url(#gradient)" stroke-width="3" />
+  <circle cx="90" cy="80" r="10" fill="url(#gradient)" />
+  <path d="M110,80 A10,10 0 1,1 120,90" fill="none" stroke="url(#gradient)" stroke-width="3" />
+  <path d="M65,110 L115,110 L115,130 Q90,150 65,130 Z" fill="url(#gradient)" opacity="0.7" />
+  <text x="100" y="30" font-family="Arial" font-size="12" text-anchor="middle" fill="#0d6efd">SMART DAIRY</text>
+</svg> 

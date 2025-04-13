@@ -25,10 +25,6 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
-                    </li>
-                    
                     {% if current_user.is_authenticated %}
                         {% if current_user.is_milk_seller() %}
                             <li class="nav-item">
@@ -62,6 +58,19 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('dairy_holder.reports') }}">Reports</a>
+                            </li>
+                        {% elif current_user.is_milk_buyer() %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('milk_buyer.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('milk_buyer.purchases') }}">Purchases</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('milk_buyer.suppliers') }}">Suppliers</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('milk_buyer.reports') }}">Reports</a>
                             </li>
                         {% endif %}
                     {% endif %}

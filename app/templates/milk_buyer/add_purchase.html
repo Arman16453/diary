@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Add New Milk Purchase</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('milk_buyer.add_purchase') }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="supplier_name" class="form-label">Supplier Name</label>
+                                <input type="text" class="form-control" id="supplier_name" name="supplier_name" required value="{{ request.args.get('supplier_name', '') }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="source_location" class="form-label">Source Location</label>
+                                <input type="text" class="form-control" id="source_location" name="source_location">
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="milk_type" class="form-label">Milk Type</label>
+                                <select class="form-select" id="milk_type" name="milk_type" required>
+                                    <option value="cow">Cow</option>
+                                    <option value="buffalo">Buffalo</option>
+                                    <option value="mixed">Mixed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="quantity" class="form-label">Quantity (Liters)</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" step="0.1" min="0.1" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="price_per_liter" class="form-label">Price (₹/Liter)</label>
+                                <input type="number" class="form-control" id="price_per_liter" name="price_per_liter" step="0.01" min="0.01" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="fat_percentage" class="form-label">Fat Percentage</label>
+                                <input type="number" class="form-control" id="fat_percentage" name="fat_percentage" step="0.1" min="0" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="snf_percentage" class="form-label">SNF Percentage</label>
+                                <input type="number" class="form-control" id="snf_percentage" name="snf_percentage" step="0.1" min="0" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="quality_grade" class="form-label">Quality Grade</label>
+                                <select class="form-select" id="quality_grade" name="quality_grade" required>
+                                    <option value="A+">A+ (Premium)</option>
+                                    <option value="A">A (Standard)</option>
+                                    <option value="B">B (Basic)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label">Total Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="text" class="form-control" id="total_amount" readonly>
+                                </div>
+                                <small class="text-muted">Total is calculated automatically (Quantity × Price/Liter)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-3">
+                            <a href="{{ url_for('milk_buyer.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Add Purchase</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Calculate total amount when quantity or price changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const quantityInput = document.getElementById('quantity');
+        const priceInput = document.getElementById('price_per_liter');
+        const totalDisplay = document.getElementById('total_amount');
+        
+        function calculateTotal() {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = (quantity * price).toFixed(2);
+            totalDisplay.value = total;
+        }
+        
+        quantityInput.addEventListener('input', calculateTotal);
+        priceInput.addEventListener('input', calculateTotal);
+        
+        // Initialize on page load
+        calculateTotal();
+        
+        // Quality grade selection based on fat and SNF
+        const fatInput = document.getElementById('fat_percentage');
+        const snfInput = document.getElementById('snf_percentage');
+        const qualitySelect = document.getElementById('quality_grade');
+        
+        function updateQualityGrade() {
+            const fat = parseFloat(fatInput.value) || 0;
+            const snf = parseFloat(snfInput.value) || 0;
+            
+            if (fat > 4.5 && snf > 8.5) {
+                qualitySelect.value = 'A+';
+            } else if (fat >= 3.5 && fat <= 4.5 && snf >= 8.0 && snf <= 8.5) {
+                qualitySelect.value = 'A';
+            } else if (fat < 3.5 || snf < 8.0) {
+                qualitySelect.value = 'B';
+            }
+        }
+        
+        fatInput.addEventListener('input', updateQualityGrade);
+        snfInput.addEventListener('input', updateQualityGrade);
+    });
+</script>
+{% endblock %} 

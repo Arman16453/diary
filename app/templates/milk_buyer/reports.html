@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Purchase Reports</h1>
+        <a href="{{ url_for('milk_buyer.add_purchase') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Purchase
+        </a>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Select Date Range</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('milk_buyer.reports') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Generate Report</button>
+                    <a href="{{ url_for('milk_buyer.reports') }}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Volume</h5>
+                    <h2 class="mb-0">{{ "%.1f"|format(purchases|sum(attribute='quantity')) }} L</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Spent</h5>
+                    <h2 class="mb-0">₹{{ "%.2f"|format(purchases|sum(attribute='total_amount')) }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Avg. Price/Liter</h5>
+                    {% set total_spent = purchases|sum(attribute='total_amount') %}
+                    {% set total_volume = purchases|sum(attribute='quantity') %}
+                    {% if total_volume > 0 %}
+                        <h2 class="mb-0">₹{{ "%.2f"|format(total_spent / total_volume) }}</h2>
+                    {% else %}
+                        <h2 class="mb-0">₹0.00</h2>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Purchase Count</h5>
+                    <h2 class="mb-0">{{ purchases|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Reports -->
+    <div class="row">
+        <!-- Milk Type Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Milk Type Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Milk Type</th>
+                                    <th>Volume (L)</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for milk_type, volume in milk_types.items() %}
+                                <tr>
+                                    <td>{{ milk_type|capitalize }}</td>
+                                    <td>{{ "%.1f"|format(volume) }}</td>
+                                    {% set percentage = (volume / purchases|sum(attribute='quantity') * 100) if purchases else 0 %}
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">{{ "%.1f"|format(percentage) }}%</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Suppliers -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Top Suppliers</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Supplier</th>
+                                    <th>Volume (L)</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for supplier, volume in suppliers.items() %}
+                                <tr>
+                                    <td>{{ supplier }}</td>
+                                    <td>{{ "%.1f"|format(volume) }}</td>
+                                    {% set percentage = (volume / purchases|sum(attribute='quantity') * 100) if purchases else 0 %}
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ percentage }}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">{{ "%.1f"|format(percentage) }}%</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Volume Chart -->
+        <div class="col-md-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Daily Purchase Volumes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Volume (L)</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Average Price (₹/L)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for date, volume in daily_volumes.items() %}
+                                <tr>
+                                    <td>{{ date }}</td>
+                                    <td>{{ "%.1f"|format(volume['volume']) }}</td>
+                                    <td>{{ "%.2f"|format(volume['amount']) }}</td>
+                                    <td>{{ "%.2f"|format(volume['amount'] / volume['volume']) if volume['volume'] > 0 else '0.00' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Export Options</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" disabled>
+                    <i class="fas fa-file-excel me-1"></i> Export to Excel
+                </button>
+                <button class="btn btn-outline-danger" disabled>
+                    <i class="fas fa-file-pdf me-1"></i> Export to PDF
+                </button>
+                <button class="btn btn-outline-secondary" disabled>
+                    <i class="fas fa-print me-1"></i> Print Report
+                </button>
+            </div>
+            <small class="text-muted mt-2 d-block">* Export functionality will be available in future updates</small>
+        </div>
+    </div>
+</div>
+{% endblock %} 

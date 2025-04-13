@@ -8,6 +8,17 @@ auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
+    # If user is already logged in, redirect to appropriate dashboard
+    if current_user.is_authenticated:
+        if current_user.is_milk_seller():
+            return redirect(url_for('milk_seller.dashboard'))
+        elif current_user.is_bike_milk_seller():
+            return redirect(url_for('bike_milk_seller.dashboard'))
+        elif current_user.is_dairy_holder():
+            return redirect(url_for('dairy_holder.dashboard'))
+        elif current_user.is_milk_buyer():
+            return redirect(url_for('milk_buyer.dashboard'))
+            
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -27,6 +38,8 @@ def login():
             return redirect(url_for('bike_milk_seller.dashboard'))
         elif user.is_dairy_holder():
             return redirect(url_for('dairy_holder.dashboard'))
+        elif user.is_milk_buyer():
+            return redirect(url_for('milk_buyer.dashboard'))
         
         return redirect(url_for('main.index'))
     
@@ -34,6 +47,17 @@ def login():
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
+    # If user is already logged in, redirect to appropriate dashboard
+    if current_user.is_authenticated:
+        if current_user.is_milk_seller():
+            return redirect(url_for('milk_seller.dashboard'))
+        elif current_user.is_bike_milk_seller():
+            return redirect(url_for('bike_milk_seller.dashboard'))
+        elif current_user.is_dairy_holder():
+            return redirect(url_for('dairy_holder.dashboard'))
+        elif current_user.is_milk_buyer():
+            return redirect(url_for('milk_buyer.dashboard'))
+            
     if request.method == 'POST':
         email = request.form.get('email')
         name = request.form.get('name')
