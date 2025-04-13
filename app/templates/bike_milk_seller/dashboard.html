@@ -1,17 +1,20 @@
-{% extends 'base.html' %}
+{% extends 'bike_milk_seller/base_bike_seller.html' %}
 
-{% block title %}Bike Seller Dashboard - Smart Dairy{% endblock %}
+{% block title %}Bike Milk Seller Dashboard - Smart Dairy{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Bike Seller Dashboard</h1>
-    <a href="{{ url_for('bike_milk_seller.add_delivery') }}" class="btn btn-primary">
-        <i class="fas fa-plus me-1"></i> Add Delivery
-    </a>
+    <h1>Bike Milk Seller Dashboard</h1>
+    <div>
+        <a href="{{ url_for('bike_milk_seller.add_delivery') }}" class="btn btn-primary me-2">
+            <i class="fas fa-truck me-1"></i> Add Delivery
+        </a>
+    </div>
 </div>
 
+<!-- Stats Summary Cards -->
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card mb-4 bg-primary text-white">
             <div class="card-body text-center">
                 <h5 class="card-title">Total Milk Delivered</h5>
@@ -21,7 +24,7 @@
         </div>
     </div>
     
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card mb-4 bg-success text-white">
             <div class="card-body text-center">
                 <h5 class="card-title">Total Earnings</h5>
@@ -31,7 +34,7 @@
         </div>
     </div>
     
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card mb-4 bg-warning text-dark">
             <div class="card-body text-center">
                 <h5 class="card-title">Pending Payment</h5>
@@ -40,95 +43,155 @@
             </div>
         </div>
     </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center bg-light">
-                <h5 class="mb-0">Recent Deliveries</h5>
-                <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-sm btn-outline-primary">View All</a>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Customer</th>
-                                <th>Quantity (L)</th>
-                                <th>Price (₹/L)</th>
-                                <th>Total Amount (₹)</th>
-                                <th>Payment Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for delivery in deliveries %}
-                                <tr>
-                                    <td>{{ delivery.date.strftime('%d-%m-%Y') }}</td>
-                                    <td>{{ delivery.customer_name }}</td>
-                                    <td>{{ "%.1f"|format(delivery.quantity) }}</td>
-                                    <td>{{ "%.2f"|format(delivery.price_per_liter) }}</td>
-                                    <td>₹{{ "%.2f"|format(delivery.total_amount) }}</td>
-                                    <td>
-                                        {% if delivery.is_paid %}
-                                            <span class="badge bg-success">Paid</span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Pending</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if not delivery.is_paid %}
-                                            <form method="POST" action="{{ url_for('bike_milk_seller.update_payment', delivery_id=delivery.id) }}" style="display: inline;">
-                                                <button type="submit" class="btn btn-sm btn-success">
-                                                    <i class="fas fa-check me-1"></i> Mark Paid
-                                                </button>
-                                            </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="7" class="text-center">No deliveries found</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+    
+    <div class="col-md-3">
+        <div class="card mb-4 bg-info text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Total Milk Received</h5>
+                <h2 class="display-4">{{ "%.2f"|format(total_milk_received) }}</h2>
+                <p class="mb-0">From Milk Sellers</p>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center bg-light">
-                <h5 class="mb-0">Quick Links</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <a href="{{ url_for('bike_milk_seller.customer_list') }}" class="btn btn-outline-primary w-100 py-3">
-                            <i class="fas fa-users fa-2x mb-2"></i><br>
-                            Customer List
-                        </a>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <a href="{{ url_for('bike_milk_seller.add_delivery') }}" class="btn btn-outline-success w-100 py-3">
-                            <i class="fas fa-truck fa-2x mb-2"></i><br>
-                            New Delivery
-                        </a>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-outline-info w-100 py-3">
-                            <i class="fas fa-list-alt fa-2x mb-2"></i><br>
-                            All Deliveries
-                        </a>
-                    </div>
+<!-- Main Feature Cards -->
+<div class="row mb-4">
+    <!-- Deliveries Card -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-truck text-primary" style="font-size: 3rem;"></i>
                 </div>
+                <h3 class="card-title">Deliveries</h3>
+                <p class="card-text">Manage your milk delivery transactions</p>
+                <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-primary">View Deliveries</a>
             </div>
+        </div>
+    </div>
+    
+    <!-- Customers Card -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-users text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h3 class="card-title">Customers</h3>
+                <p class="card-text">View and manage your customers</p>
+                <a href="{{ url_for('bike_milk_seller.customer_list') }}" class="btn btn-success">View Customers</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analytics Card -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-chart-line text-info" style="font-size: 3rem;"></i>
+                </div>
+                <h3 class="card-title">Analytics</h3>
+                <p class="card-text">Advanced analytics and insights</p>
+                <a href="{{ url_for('bike_milk_seller.analytics') }}" class="btn btn-info text-white">View Analytics</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quality Metrics Card -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-vial text-warning" style="font-size: 3rem;"></i>
+                </div>
+                <h3 class="card-title">Quality Metrics</h3>
+                <p class="card-text">Track milk quality parameters</p>
+                <a href="{{ url_for('bike_milk_seller.quality') }}" class="btn btn-warning">View Quality</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Milk Purchases Card -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-shopping-cart text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <h3 class="card-title">Milk Purchases</h3>
+                <p class="card-text">Track milk bought from suppliers</p>
+                <a href="{{ url_for('bike_milk_seller.milk_purchases') }}" class="btn btn-danger">View Purchases</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reports Card -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-file-alt text-secondary" style="font-size: 3rem;"></i>
+                </div>
+                <h3 class="card-title">Reports</h3>
+                <p class="card-text">Generate and view reports</p>
+                <a href="{{ url_for('bike_milk_seller.reports') }}" class="btn btn-secondary">View Reports</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Deliveries Section -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center bg-light">
+        <h5 class="mb-0">Recent Deliveries</h5>
+        <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Quantity (L)</th>
+                        <th>Total Amount (₹)</th>
+                        <th>Payment Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for delivery in deliveries %}
+                        <tr>
+                            <td>{{ delivery.date.strftime('%d-%m-%Y') }}</td>
+                            <td>{{ delivery.customer_name }}</td>
+                            <td>{{ "%.1f"|format(delivery.quantity) }}</td>
+                            <td>₹{{ "%.2f"|format(delivery.total_amount) }}</td>
+                            <td>
+                                {% if delivery.is_paid %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not delivery.is_paid %}
+                                    <form method="POST" action="{{ url_for('bike_milk_seller.update_payment', delivery_id=delivery.id) }}" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check me-1"></i> Mark Paid
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No deliveries found</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

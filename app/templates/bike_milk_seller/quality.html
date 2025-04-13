@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Milk Quality - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Milk Quality Analysis</h1>
+    <div>
+        <a href="{{ url_for('bike_milk_seller.dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Summary cards -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Average Fat Percentage</h5>
+                <h2 class="display-4">{{ "%.1f"|format(avg_fat) }}%</h2>
+                <p class="mb-0">Overall milk quality</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Average SNF Percentage</h5>
+                <h2 class="display-4">{{ "%.1f"|format(avg_snf) }}%</h2>
+                <p class="mb-0">Solids-Not-Fat content</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quality Trend Chart -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Quality Trends</h5>
+    </div>
+    <div class="card-body">
+        <canvas id="qualityTrendChart" height="300"></canvas>
+    </div>
+</div>
+
+<!-- Supplier Quality Comparison -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Supplier Quality Comparison</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <canvas id="fatComparisonChart" height="300"></canvas>
+            </div>
+            <div class="col-md-6">
+                <canvas id="snfComparisonChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Purchases with Quality Data -->
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Recent Milk Purchases</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Seller</th>
+                        <th>Quantity (L)</th>
+                        <th>Fat (%)</th>
+                        <th>SNF (%)</th>
+                        <th>Price (₹/L)</th>
+                        <th>Total (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for purchase in purchases %}
+                    <tr>
+                        <td>{{ purchase.date.strftime('%d-%m-%Y') }}</td>
+                        <td>
+                            {% if purchase.seller %}
+                                {{ purchase.seller.name }}
+                            {% else %}
+                                Unknown Seller
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.1f"|format(purchase.quantity) }}</td>
+                        <td>{{ "%.1f"|format(purchase.fat_percentage) }}%</td>
+                        <td>{{ "%.1f"|format(purchase.snf_percentage) }}%</td>
+                        <td>₹{{ "%.2f"|format(purchase.price_per_liter) }}</td>
+                        <td>₹{{ "%.2f"|format(purchase.total_amount) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">No purchase data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Quality Table -->
+<div class="card mt-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Supplier Quality Analysis</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Supplier</th>
+                        <th>Avg. Fat (%)</th>
+                        <th>Avg. SNF (%)</th>
+                        <th>Purchase Count</th>
+                        <th>Quality Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for seller_name, data in seller_quality.items() %}
+                    <tr>
+                        <td>{{ seller_name }}</td>
+                        <td>{{ "%.1f"|format(data.avg_fat) }}%</td>
+                        <td>{{ "%.1f"|format(data.avg_snf) }}%</td>
+                        <td>{{ data.count }}</td>
+                        <td>
+                            {% if data.avg_fat >= 4.0 and data.avg_snf >= 8.5 %}
+                                <span class="badge bg-success">Excellent</span>
+                            {% elif data.avg_fat >= 3.5 and data.avg_snf >= 8.0 %}
+                                <span class="badge bg-primary">Good</span>
+                            {% elif data.avg_fat >= 3.0 and data.avg_snf >= 7.5 %}
+                                <span class="badge bg-warning text-dark">Average</span>
+                            {% else %}
+                                <span class="badge bg-danger">Below Standard</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">No supplier quality data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Quality Trend Chart
+        const qualityTrendCtx = document.getElementById('qualityTrendChart').getContext('2d');
+        const dates = {{ dates|tojson|safe }};
+        const fatValues = {{ fat_values|tojson|safe }};
+        const snfValues = {{ snf_values|tojson|safe }};
+        
+        new Chart(qualityTrendCtx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Fat %',
+                        data: fatValues,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'SNF %',
+                        data: snfValues,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Percentage'
+                        }
+                    },
+                    x: {
+                        reverse: true // Display most recent dates first
+                    }
+                }
+            }
+        });
+        
+        // Prepare supplier data for charts
+        const sellerNames = [];
+        const sellerFatValues = [];
+        const sellerSnfValues = [];
+        
+        {% for seller_name, data in seller_quality.items() %}
+        sellerNames.push("{{ seller_name }}");
+        sellerFatValues.push({{ data.avg_fat }});
+        sellerSnfValues.push({{ data.avg_snf }});
+        {% endfor %}
+        
+        // Supplier Fat Comparison Chart
+        const fatComparisonCtx = document.getElementById('fatComparisonChart').getContext('2d');
+        new Chart(fatComparisonCtx, {
+            type: 'bar',
+            data: {
+                labels: sellerNames,
+                datasets: [{
+                    label: 'Average Fat %',
+                    data: sellerFatValues,
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Fat % by Supplier'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Fat %'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Supplier SNF Comparison Chart
+        const snfComparisonCtx = document.getElementById('snfComparisonChart').getContext('2d');
+        new Chart(snfComparisonCtx, {
+            type: 'bar',
+            data: {
+                labels: sellerNames,
+                datasets: [{
+                    label: 'Average SNF %',
+                    data: sellerSnfValues,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'SNF % by Supplier'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'SNF %'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

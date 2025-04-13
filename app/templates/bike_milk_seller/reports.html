@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Delivery and Purchase Reports</h1>
+    <div>
+        <a href="{{ url_for('bike_milk_seller.dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Date range filter -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Filter by Date Range</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('bike_milk_seller.reports') }}">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">Apply Filter</button>
+                    <a href="{{ url_for('bike_milk_seller.reports') }}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Delivered</h5>
+                <h2 class="display-5">{{ "%.1f"|format(total_delivered) }}L</h2>
+                <p class="mb-0">To customers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Sales</h5>
+                <h2 class="display-5">₹{{ "%.2f"|format(total_sales) }}</h2>
+                <p class="mb-0">Revenue</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Purchased</h5>
+                <h2 class="display-5">{{ "%.1f"|format(total_purchased) }}L</h2>
+                <p class="mb-0">From suppliers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Total Profit</h5>
+                <h2 class="display-5">₹{{ "%.2f"|format(total_profit) }}</h2>
+                <p class="mb-0">{{ "%.1f"|format(profit_margin) }}% margin</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Monthly Delivery vs Purchase Volume</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="volumeChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title">Monthly Revenue vs Cost</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="financialChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Milk Quality Section -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Milk Quality Analysis</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card border-light mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Average Fat Percentage</h6>
+                        <div class="display-4 text-center">{{ "%.1f"|format(avg_fat) }}%</div>
+                        <p class="text-muted text-center">For purchased milk</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-light mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Average SNF Percentage</h6>
+                        <div class="display-4 text-center">{{ "%.1f"|format(avg_snf) }}%</div>
+                        <p class="text-muted text-center">For purchased milk</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly data table -->
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Monthly Business Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Delivered (L)</th>
+                        <th>Purchased (L)</th>
+                        <th>Sales Revenue (₹)</th>
+                        <th>Purchase Cost (₹)</th>
+                        <th>Profit (₹)</th>
+                        <th>Profit Margin (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month, data in monthly_data.items() %}
+                    <tr>
+                        <td>{{ month }}</td>
+                        <td>{{ "%.1f"|format(data.delivered_quantity) }}</td>
+                        <td>{{ "%.1f"|format(data.purchase_quantity) }}</td>
+                        <td>₹{{ "%.2f"|format(data.sales_amount) }}</td>
+                        <td>₹{{ "%.2f"|format(data.purchase_amount) }}</td>
+                        <td>₹{{ "%.2f"|format(data.profit) }}</td>
+                        <td>
+                            {% if data.sales_amount > 0 %}
+                                {{ "%.1f"|format(data.profit / data.sales_amount * 100) }}%
+                            {% else %}
+                                0.0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">No monthly data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Extract data for charts
+        const months = [];
+        const deliveredQuantities = [];
+        const purchasedQuantities = [];
+        const salesAmounts = [];
+        const purchaseAmounts = [];
+        const profits = [];
+        
+        {% for month, data in monthly_data.items() %}
+        months.push("{{ month }}");
+        deliveredQuantities.push({{ data.delivered_quantity }});
+        purchasedQuantities.push({{ data.purchase_quantity }});
+        salesAmounts.push({{ data.sales_amount }});
+        purchaseAmounts.push({{ data.purchase_amount }});
+        profits.push({{ data.profit }});
+        {% endfor %}
+        
+        // Volume Chart
+        const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+        new Chart(volumeCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Delivered Volume (L)',
+                        data: deliveredQuantities,
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Purchased Volume (L)',
+                        data: purchasedQuantities,
+                        backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Volume (Liters)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Financial Chart
+        const financialCtx = document.getElementById('financialChart').getContext('2d');
+        new Chart(financialCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Sales Revenue (₹)',
+                        data: salesAmounts,
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Purchase Cost (₹)',
+                        data: purchaseAmounts,
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Profit (₹)',
+                        data: profits,
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 1,
+                        type: 'line',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Amount (₹)'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

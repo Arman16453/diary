@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}Customers - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Your Customers</h1>
+    <div>
+        <button class="btn btn-outline-primary me-2" disabled>
+            <i class="fas fa-filter me-1"></i> Filter
+        </button>
+        <button class="btn btn-primary" disabled>
+            <i class="fas fa-plus me-1"></i> Add Customer
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Total Customers</h5>
+                <h2 class="display-4">{{ customers|length }}</h2>
+                <p class="mb-0">Active Relationships</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">Regular Buyers</h5>
+                <h2 class="display-4">{{ customers|selectattr('transaction_count', 'gt', 5)|list|length }}</h2>
+                <p class="mb-0">5+ Transactions</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">New Customers</h5>
+                <h2 class="display-4">{{ customers|selectattr('transaction_count', 'lt', 3)|list|length }}</h2>
+                <p class="mb-0">Last 30 days</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h5 class="card-title">Inactive Customers</h5>
+                <h2 class="display-4">0</h2>
+                <p class="mb-0">No activity in 90+ days</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Customer List</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Customer Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Total Transactions</th>
+                        <th>Last Transaction</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cust in customers %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ cust.customer.name }}</td>
+                        <td>{{ cust.customer.email }}</td>
+                        <td>{{ cust.customer.phone or 'N/A' }}</td>
+                        <td>{{ cust.transaction_count }}</td>
+                        <td>{{ cust.last_transaction.strftime('%d-%m-%Y') }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" disabled>View</button>
+                            <button class="btn btn-sm btn-outline-success" disabled>Message</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">No customers found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Top Customers</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% set top_customers = customers|sort(attribute='transaction_count', reverse=true) %}
+                    {% for cust in top_customers|slice(0, 5) %}
+                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ cust.customer.name }}</h6>
+                            <small>{{ cust.customer.email }}</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ cust.transaction_count }} transactions</span>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item">No customer data available</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% set recent_customers = customers|sort(attribute='last_transaction', reverse=true) %}
+                    {% for cust in recent_customers|slice(0, 5) %}
+                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ cust.customer.name }}</h6>
+                            <small>Last transaction: {{ cust.last_transaction.strftime('%d-%m-%Y') }}</small>
+                        </div>
+                        <span class="badge bg-info rounded-pill">{{ (cust.last_transaction - now).days|abs }} days ago</span>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item">No recent activity</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // JavaScript to handle customer-related functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize variables and UI elements
+        const now = new Date();
+        
+        // Add any additional customer-related JavaScript functionality here
+    });
+</script>
+{% endblock %} 

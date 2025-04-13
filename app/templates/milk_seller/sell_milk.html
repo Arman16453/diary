@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Sell Milk - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Sell Your Milk</h1>
+    
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">Sell to Dairy Holder</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Sell your milk directly to dairy holders who will process and distribute it further.</p>
+                    <h5 class="mt-4 mb-3">Available Dairy Holders:</h5>
+                    
+                    {% if dairy_holders %}
+                        <div class="list-group">
+                            {% for dairy in dairy_holders %}
+                                <a href="{{ url_for('milk_seller.sell_to_dairy', dairy_holder_id=dairy.id) }}" 
+                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ dairy.name }}</h6>
+                                        <small>{{ dairy.email }}</small>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">Select</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            No dairy holders available at the moment.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('milk_seller.sell_to_dairy') }}" class="btn btn-primary w-100">
+                        <i class="fas fa-store me-2"></i> Go to Dairy Holder Selection
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h3 class="card-title mb-0">Sell to Bike Milk Seller</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Sell your milk to bike milk sellers who will deliver it directly to end customers.</p>
+                    <h5 class="mt-4 mb-3">Available Bike Milk Sellers:</h5>
+                    
+                    {% if bike_milk_sellers %}
+                        <div class="list-group">
+                            {% for seller in bike_milk_sellers %}
+                                <a href="{{ url_for('milk_seller.sell_to_bike_seller', bike_seller_id=seller.id) }}" 
+                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ seller.name }}</h6>
+                                        <small>{{ seller.email }}</small>
+                                    </div>
+                                    <span class="badge bg-success rounded-pill">Select</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            No bike milk sellers available at the moment.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('milk_seller.sell_to_bike_seller') }}" class="btn btn-success w-100">
+                        <i class="fas fa-motorcycle me-2"></i> Go to Bike Milk Seller Selection
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="{{ url_for('milk_seller.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %} 

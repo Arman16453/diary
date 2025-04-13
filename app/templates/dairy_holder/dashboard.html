@@ -1,0 +1,335 @@
+{% extends "dairy_holder/base.html" %}
+
+{% block title %}Dashboard - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Dairy Holder Dashboard</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <a href="{{ url_for('dairy_holder.add_inventory') }}" class="btn btn-sm btn-outline-primary">Add New Inventory</a>
+                <a href="{{ url_for('dairy_holder.export_inventory') }}" class="btn btn-sm btn-outline-secondary">Export Inventory</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Inventory</h5>
+                    <p class="card-text display-5">{{ "{:,.2f}".format(total_inventory) }} L</p>
+                    <small>Today: {{ "{:,.2f}".format(todays_collection) }} L</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Payments</h5>
+                    <p class="card-text display-5">₹{{ "{:,.2f}".format(pending_payments) }}</p>
+                    <small>{{ pending_count }} unpaid transactions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Suppliers</h5>
+                    <p class="card-text display-5">{{ supplier_count }}</p>
+                    <small>Active milk suppliers</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Quality Metrics</h5>
+                    <p class="card-text display-5">{{ "{:,.1f}".format(avg_quality) }}</p>
+                    <small>Fat: {{ "{:,.1f}".format(avg_fat) }}% | SNF: {{ "{:,.1f}".format(avg_snf) }}%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Inventory Transactions -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Inventory</h5>
+                        <a href="{{ url_for('dairy_holder.inventory') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Supplier</th>
+                                    <th>Quantity (L)</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inventory in recent_inventory %}
+                                <tr>
+                                    <td>{{ inventory.date_added.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ inventory.supplier_name }}</td>
+                                    <td>{{ "{:,.2f}".format(inventory.quantity) }}</td>
+                                    <td>{{ "{:,.2f}".format(inventory.amount) }}</td>
+                                    <td>
+                                        {% if inventory.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not inventory.is_paid %}
+                                        <a href="{{ url_for('dairy_holder.mark_paid', inventory_id=inventory.id) }}" class="btn btn-sm btn-success">Mark Paid</a>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-info inventory-details-btn" data-id="{{ inventory.id }}">Details</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Collection Chart -->
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Monthly Collection</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyCollectionChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions and Quality Trends -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('dairy_holder.inventory') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-boxes fa-2x mb-2"></i><br>
+                                Inventory Management
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('dairy_holder.stock') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-warehouse fa-2x mb-2"></i><br>
+                                Stock Overview
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('dairy_holder.suppliers') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-users fa-2x mb-2"></i><br>
+                                Manage Suppliers
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('dairy_holder.reports') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-file-alt fa-2x mb-2"></i><br>
+                                Generate Reports
+                            </a>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <a href="{{ url_for('dairy_holder.analytics') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                                Inventory Analytics
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card shadow h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Quality Trends</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="qualityTrendsChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Details Modal -->
+    <div class="modal fade" id="inventoryDetailsModal" tabindex="-1" aria-labelledby="inventoryDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inventoryDetailsModalLabel">Inventory Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="inventoryDetailsContent">
+                    Loading...
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="#" class="btn btn-primary" id="editInventoryBtn">Edit</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Script tags to pass data from Jinja to JavaScript -->
+<script type="text/javascript">
+    // These variables are defined in a separate script tag to avoid linter errors
+    var daysData = {{ days|tojson|safe }};
+    var quantitiesData = {{ quantities|tojson|safe }};
+    var qualityDaysData = {{ quality_days|tojson|safe }};
+    var fatValuesData = {{ fat_values|tojson|safe }};
+    var snfValuesData = {{ snf_values|tojson|safe }};
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly Collection Chart
+        const monthlyCollectionCtx = document.getElementById('monthlyCollectionChart').getContext('2d');
+        const monthlyCollectionChart = new Chart(monthlyCollectionCtx, {
+            type: 'bar',
+            data: {
+                labels: daysData,
+                datasets: [{
+                    label: 'Collection (L)',
+                    data: quantitiesData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Volume (L)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Quality Trends Chart
+        const qualityTrendsCtx = document.getElementById('qualityTrendsChart').getContext('2d');
+        const qualityTrendsChart = new Chart(qualityTrendsCtx, {
+            type: 'line',
+            data: {
+                labels: qualityDaysData,
+                datasets: [
+                    {
+                        label: 'Fat %',
+                        data: fatValuesData,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'SNF %',
+                        data: snfValuesData,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Percentage'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Inventory Details Modal
+        const inventoryDetailsBtns = document.querySelectorAll('.inventory-details-btn');
+        inventoryDetailsBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const inventoryId = this.getAttribute('data-id');
+                const modal = new bootstrap.Modal(document.getElementById('inventoryDetailsModal'));
+                
+                // Get details via AJAX
+                fetch(`/dairy_holder/api/dairy_holder/inventory/${inventoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const content = document.getElementById('inventoryDetailsContent');
+                        content.innerHTML = `
+                            <div class="mb-3">
+                                <h6>Supplier</h6>
+                                <p>${data.supplier_name}</p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Milk Type</h6>
+                                <p>${data.milk_type}</p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Quantity</h6>
+                                <p>${data.quantity} L</p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Fat Percentage</h6>
+                                <p>${data.fat_percentage}%</p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>SNF Percentage</h6>
+                                <p>${data.snf_percentage}%</p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Date Added</h6>
+                                <p>${data.date_added}</p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Payment Status</h6>
+                                <p>${data.is_paid ? '<span class="badge bg-success">Paid</span>' : '<span class="badge bg-warning">Pending</span>'}</p>
+                            </div>
+                        `;
+                        
+                        const editBtn = document.getElementById('editInventoryBtn');
+                        editBtn.href = `/dairy_holder/edit_inventory?id=${data.id}`;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching inventory details:', error);
+                        document.getElementById('inventoryDetailsContent').innerHTML = 'Error loading details. Please try again.';
+                    });
+                
+                modal.show();
+            });
+        });
+    });
+</script>
+{% endblock %} 

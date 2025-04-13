@@ -1,0 +1,418 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Management - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Inventory Management</h1>
+    <div>
+        <a href="{{ url_for('milk_buyer.dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Current Inventory Status</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                    <i class="fas fa-plus me-1"></i> Add Inventory
+                </button>
+            </div>
+            <div class="card-body">
+                {% if inventory_items %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Unit</th>
+                                <th>Added On</th>
+                                <th>Expiry Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventory_items %}
+                            <tr {% if item.is_low %}class="table-warning"{% elif item.is_expired %}class="table-danger"{% endif %}>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.type }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ item.unit }}</td>
+                                <td>{{ item.added_on.strftime('%d-%m-%Y') }}</td>
+                                <td>{{ item.expiry_date.strftime('%d-%m-%Y') if item.expiry_date else 'N/A' }}</td>
+                                <td>
+                                    {% if item.is_expired %}
+                                        <span class="badge bg-danger">Expired</span>
+                                    {% elif item.is_low %}
+                                        <span class="badge bg-warning text-dark">Low Stock</span>
+                                    {% else %}
+                                        <span class="badge bg-success">In Stock</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editInventoryModal"
+                                                data-item-id="{{ item.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteInventoryModal"
+                                                data-item-id="{{ item.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> No inventory items found. Add your first item using the button above.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Inventory Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <span><i class="fas fa-archive me-2"></i> Total Items:</span>
+                    <span class="fw-bold">{{ inventory_summary.total_items }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span><i class="fas fa-exclamation-triangle me-2 text-warning"></i> Low Stock Items:</span>
+                    <span class="fw-bold text-warning">{{ inventory_summary.low_stock_items }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span><i class="fas fa-times-circle me-2 text-danger"></i> Expired Items:</span>
+                    <span class="fw-bold text-danger">{{ inventory_summary.expired_items }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span><i class="fas fa-check-circle me-2 text-success"></i> Healthy Stock:</span>
+                    <span class="fw-bold text-success">{{ inventory_summary.healthy_items }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Stock Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="stockDistributionChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Expiring Soon</h5>
+            </div>
+            <div class="card-body">
+                {% if expiring_soon %}
+                <div class="list-group">
+                    {% for item in expiring_soon %}
+                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ item.name }}</h6>
+                            <small class="text-muted">{{ item.type }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-warning text-dark">Expires in {{ item.days_to_expiry }} days</span>
+                            <div><small>{{ item.expiry_date.strftime('%d-%m-%Y') }}</small></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i> No items expiring soon.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Need to Restock</h5>
+            </div>
+            <div class="card-body">
+                {% if need_restock %}
+                <div class="list-group">
+                    {% for item in need_restock %}
+                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ item.name }}</h6>
+                            <small class="text-muted">{{ item.type }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-danger">{{ item.quantity }} {{ item.unit }} left</span>
+                            <div><small>Restock threshold: {{ item.restock_level }} {{ item.unit }}</small></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i> All items are well stocked.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Inventory Modal -->
+<div class="modal fade" id="addInventoryModal" tabindex="-1" aria-labelledby="addInventoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addInventoryModalLabel">Add Inventory Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addInventoryForm" action="{{ url_for('milk_buyer.add_inventory') }}" method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Item Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="">Select type</option>
+                            <option value="Feed">Feed</option>
+                            <option value="Medicine">Medicine</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Packaging">Packaging</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="unit" class="form-label">Unit</label>
+                                <select class="form-select" id="unit" name="unit" required>
+                                    <option value="">Select unit</option>
+                                    <option value="kg">Kilogram (kg)</option>
+                                    <option value="g">Gram (g)</option>
+                                    <option value="l">Liter (l)</option>
+                                    <option value="ml">Milliliter (ml)</option>
+                                    <option value="units">Units</option>
+                                    <option value="pcs">Pieces</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expiry_date" class="form-label">Expiry Date (if applicable)</label>
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="restock_level" class="form-label">Restock Alert Level</label>
+                        <input type="number" class="form-control" id="restock_level" name="restock_level" min="0" step="0.01" required>
+                        <small class="form-text text-muted">You'll be alerted when quantity falls below this level</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="addInventoryForm" class="btn btn-primary">Add Item</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Inventory Modal -->
+<div class="modal fade" id="editInventoryModal" tabindex="-1" aria-labelledby="editInventoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editInventoryModalLabel">Edit Inventory Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editInventoryForm" action="{{ url_for('milk_buyer.edit_inventory') }}" method="post">
+                    <input type="hidden" id="edit_item_id" name="item_id">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Item Name</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_type" class="form-label">Type</label>
+                        <select class="form-select" id="edit_type" name="type" required>
+                            <option value="">Select type</option>
+                            <option value="Feed">Feed</option>
+                            <option value="Medicine">Medicine</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Packaging">Packaging</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_quantity" class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="edit_quantity" name="quantity" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_unit" class="form-label">Unit</label>
+                                <select class="form-select" id="edit_unit" name="unit" required>
+                                    <option value="">Select unit</option>
+                                    <option value="kg">Kilogram (kg)</option>
+                                    <option value="g">Gram (g)</option>
+                                    <option value="l">Liter (l)</option>
+                                    <option value="ml">Milliliter (ml)</option>
+                                    <option value="units">Units</option>
+                                    <option value="pcs">Pieces</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_expiry_date" class="form-label">Expiry Date (if applicable)</label>
+                        <input type="date" class="form-control" id="edit_expiry_date" name="expiry_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_restock_level" class="form-label">Restock Alert Level</label>
+                        <input type="number" class="form-control" id="edit_restock_level" name="restock_level" min="0" step="0.01" required>
+                        <small class="form-text text-muted">You'll be alerted when quantity falls below this level</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="edit_notes" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="editInventoryForm" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Inventory Modal -->
+<div class="modal fade" id="deleteInventoryModal" tabindex="-1" aria-labelledby="deleteInventoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteInventoryModalLabel">Delete Inventory Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this inventory item? This action cannot be undone.</p>
+                <form id="deleteInventoryForm" action="{{ url_for('milk_buyer.delete_inventory') }}" method="post">
+                    <input type="hidden" id="delete_item_id" name="item_id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="deleteInventoryForm" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Stock Distribution Chart
+        const stockCtx = document.getElementById('stockDistributionChart').getContext('2d');
+        const stockChart = new Chart(stockCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Feed', 'Medicine', 'Equipment', 'Packaging', 'Other'],
+                datasets: [{
+                    data: {{ type_distribution|safe }},
+                    backgroundColor: [
+                        'rgba(0, 123, 255, 0.8)',
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(23, 162, 184, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(108, 117, 125, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(0, 123, 255, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(23, 162, 184, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(108, 117, 125, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Edit Modal Data
+        $('#editInventoryModal').on('show.bs.modal', function(event) {
+            const button = $(event.relatedTarget);
+            const itemId = button.data('item-id');
+            
+            // AJAX call to get item data
+            $.ajax({
+                url: "{{ url_for('milk_buyer.get_inventory_item') }}",
+                type: 'GET',
+                data: { 'item_id': itemId },
+                success: function(data) {
+                    $('#edit_item_id').val(data.id);
+                    $('#edit_name').val(data.name);
+                    $('#edit_type').val(data.type);
+                    $('#edit_quantity').val(data.quantity);
+                    $('#edit_unit').val(data.unit);
+                    $('#edit_expiry_date').val(data.expiry_date);
+                    $('#edit_restock_level').val(data.restock_level);
+                    $('#edit_notes').val(data.notes);
+                }
+            });
+        });
+
+        // Delete Modal Data
+        $('#deleteInventoryModal').on('show.bs.modal', function(event) {
+            const button = $(event.relatedTarget);
+            const itemId = button.data('item-id');
+            $('#delete_item_id').val(itemId);
+        });
+    });
+</script>
+{% endblock %} 

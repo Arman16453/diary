@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Bike Milk Seller Analytics</h1>
+    <div>
+        <a href="{{ url_for('bike_milk_seller.dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Revenue</h5>
+                <h2 class="display-5">₹{{ "%.2f"|format(total_revenue) }}</h2>
+                <p class="mb-0">From deliveries</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Profit</h5>
+                <h2 class="display-5">₹{{ "%.2f"|format(total_profit) }}</h2>
+                <p class="mb-0">{{ "%.1f"|format(profit_margin) }}% margin</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Milk Volume</h5>
+                <h2 class="display-5">{{ "%.1f"|format(total_delivered) }}L</h2>
+                <p class="mb-0">Delivered to customers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Stock Balance</h5>
+                <h2 class="display-5">{{ "%.1f"|format(stock_balance) }}L</h2>
+                <p class="mb-0">Current inventory</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Monthly Business Performance</h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-primary active" id="btn-revenue">Revenue</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-profit">Profit</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-volume">Volume</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Top Customers</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Volume (L)</th>
+                                <th>Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer, data in top_customers.items() %}
+                            <tr>
+                                <td>{{ customer }}</td>
+                                <td>{{ "%.1f"|format(data.quantity) }}</td>
+                                <td>₹{{ "%.2f"|format(data.amount) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center">No customer data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Quality Metrics (Purchased Milk)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="qualityChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Sales vs Purchases</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="balanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Business Insights</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Best Sales Day</h6>
+                        <p class="display-6">{{ best_sales_day }}</p>
+                        <p class="text-muted">With ₹{{ "%.2f"|format(best_sales_amount) }} revenue</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Most Profitable Month</h6>
+                        <p class="display-6">{{ most_profitable_month }}</p>
+                        <p class="text-muted">With ₹{{ "%.2f"|format(most_profitable_amount) }} profit</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Top Customer</h6>
+                        <p class="display-6">{{ top_customer }}</p>
+                        <p class="text-muted">With {{ "%.1f"|format(top_customer_volume) }}L purchased</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Monthly Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Sales Volume (L)</th>
+                        <th>Purchase Volume (L)</th>
+                        <th>Revenue (₹)</th>
+                        <th>Cost (₹)</th>
+                        <th>Profit (₹)</th>
+                        <th>Avg. Fat %</th>
+                        <th>Avg. SNF %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month in monthly_summary %}
+                    <tr>
+                        <td>{{ month.month_name }}</td>
+                        <td>{{ "%.1f"|format(month.sales_volume) }}</td>
+                        <td>{{ "%.1f"|format(month.purchase_volume) }}</td>
+                        <td>₹{{ "%.2f"|format(month.sales_amount) }}</td>
+                        <td>₹{{ "%.2f"|format(month.purchase_amount) }}</td>
+                        <td>₹{{ "%.2f"|format(month.profit) }}</td>
+                        <td>{{ "%.1f"|format(month.avg_fat) }}%</td>
+                        <td>{{ "%.1f"|format(month.avg_snf) }}%</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">No monthly data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly Business Chart - Revenue/Profit/Volume
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        const months = {{ months|tojson }};
+        const salesAmounts = {{ sales_amounts|tojson }};
+        const salesQuantities = {{ sales_quantities|tojson }};
+        const purchaseAmounts = {{ purchase_amounts|tojson }};
+        const profits = {{ profit_values|tojson }};
+        
+        let currentView = 'revenue';
+        const monthlyChart = new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Revenue (₹)',
+                        data: salesAmounts,
+                        backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Volume (L)',
+                        data: salesQuantities,
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        tension: 0.1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Amount (₹)'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Volume (L)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Switch between revenue, profit, and volume views
+        document.getElementById('btn-revenue').addEventListener('click', function() {
+            monthlyChart.data.datasets[0].label = 'Revenue (₹)';
+            monthlyChart.data.datasets[0].data = salesAmounts;
+            monthlyChart.update();
+            this.classList.add('active');
+            document.getElementById('btn-profit').classList.remove('active');
+            document.getElementById('btn-volume').classList.remove('active');
+        });
+        
+        document.getElementById('btn-profit').addEventListener('click', function() {
+            monthlyChart.data.datasets[0].label = 'Profit (₹)';
+            monthlyChart.data.datasets[0].data = profits;
+            monthlyChart.update();
+            this.classList.add('active');
+            document.getElementById('btn-revenue').classList.remove('active');
+            document.getElementById('btn-volume').classList.remove('active');
+        });
+        
+        document.getElementById('btn-volume').addEventListener('click', function() {
+            monthlyChart.data.datasets[0].label = 'Purchase Volume (L)';
+            monthlyChart.data.datasets[0].data = {{ purchase_quantities|tojson }};
+            monthlyChart.update();
+            this.classList.add('active');
+            document.getElementById('btn-revenue').classList.remove('active');
+            document.getElementById('btn-profit').classList.remove('active');
+        });
+        
+        // Quality Chart
+        const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+        const qualityChart = new Chart(qualityCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Fat %',
+                        data: [{% for month in monthly_summary %}{{ month.avg_fat }},{% endfor %}],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'SNF %',
+                        data: [{% for month in monthly_summary %}{{ month.avg_snf }},{% endfor %}],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Percentage'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Balance Chart - Sales vs Purchases
+        const balanceCtx = document.getElementById('balanceChart').getContext('2d');
+        const balanceChart = new Chart(balanceCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Sales Volume (L)',
+                        data: salesQuantities,
+                        backgroundColor: 'rgba(40, 167, 69, 0.5)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Purchase Volume (L)',
+                        data: {{ purchase_quantities|tojson }},
+                        backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Volume (L)'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

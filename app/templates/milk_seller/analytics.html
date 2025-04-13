@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Milk Sales Analytics</h1>
+    <div>
+        <a href="{{ url_for('milk_seller.dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Revenue</h5>
+                <h2 class="display-5">₹{{ "%.2f"|format(total_revenue) }}</h2>
+                <p class="mb-0">Lifetime earnings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Volume</h5>
+                <h2 class="display-5">{{ "%.1f"|format(total_volume) }}L</h2>
+                <p class="mb-0">Milk supplied</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Avg. Price</h5>
+                <h2 class="display-5">₹{{ "%.2f"|format(avg_price) }}</h2>
+                <p class="mb-0">Per liter</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Pending</h5>
+                <h2 class="display-5">₹{{ "%.2f"|format(pending_amount) }}</h2>
+                <p class="mb-0">Unpaid amount</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Monthly Revenue Trend</h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-primary active" id="btn-monthly">Monthly</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-weekly">Weekly</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Payment Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="paymentStatusChart" height="250"></canvas>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Paid</span>
+                        <span>₹{{ "%.2f"|format(paid_amount) }} ({{ "%.1f"|format(paid_percentage) }}%)</span>
+                    </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ paid_percentage }}%;" aria-valuenow="{{ paid_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Pending</span>
+                        <span>₹{{ "%.2f"|format(pending_amount) }} ({{ "%.1f"|format(100 - paid_percentage) }}%)</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ 100 - paid_percentage }}%;" aria-valuenow="{{ 100 - paid_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Volume Analysis</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="volumeChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Price Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="priceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Earning Insights</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Best Earning Day</h6>
+                        <p class="display-6">{{ best_day }}</p>
+                        <p class="text-muted">With ₹{{ "%.2f"|format(best_day_amount) }} earnings</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Highest Price Achieved</h6>
+                        <p class="display-6">₹{{ "%.2f"|format(highest_price) }}</p>
+                        <p class="text-muted">On {{ highest_price_date }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Most Productive Month</h6>
+                        <p class="display-6">{{ best_month }}</p>
+                        <p class="text-muted">With {{ "%.1f"|format(best_month_volume) }}L supplied</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Monthly Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Volume (L)</th>
+                        <th>Avg. Price (₹)</th>
+                        <th>Revenue (₹)</th>
+                        <th>Avg. Fat %</th>
+                        <th>Avg. SNF %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month in monthly_summary %}
+                    <tr>
+                        <td>{{ month.month_name }}</td>
+                        <td>{{ "%.1f"|format(month.volume) }}</td>
+                        <td>₹{{ "%.2f"|format(month.avg_price) }}</td>
+                        <td>₹{{ "%.2f"|format(month.revenue) }}</td>
+                        <td>{{ "%.1f"|format(month.avg_fat) }}%</td>
+                        <td>{{ "%.1f"|format(month.avg_snf) }}%</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No monthly data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        const revenueChart = new Chart(revenueCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ monthly_labels|safe }},
+                datasets: [
+                    {
+                        label: 'Revenue (₹)',
+                        data: {{ monthly_revenue|safe }},
+                        backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Volume (L)',
+                        data: {{ monthly_volume|safe }},
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        tension: 0.1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Revenue (₹)'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Volume (L)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Payment Status Chart
+        const paymentCtx = document.getElementById('paymentStatusChart').getContext('2d');
+        const paymentChart = new Chart(paymentCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Paid', 'Pending'],
+                datasets: [{
+                    data: [{{ paid_amount }}, {{ pending_amount }}],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(255, 193, 7, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+
+        // Volume Chart
+        const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+        const volumeChart = new Chart(volumeCtx, {
+            type: 'line',
+            data: {
+                labels: {{ dates|safe }},
+                datasets: [{
+                    label: 'Daily Volume (L)',
+                    data: {{ daily_volume|safe }},
+                    fill: false,
+                    borderColor: 'rgba(23, 162, 184, 1)',
+                    backgroundColor: 'rgba(23, 162, 184, 0.5)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Volume (L)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Price Chart
+        const priceCtx = document.getElementById('priceChart').getContext('2d');
+        const priceChart = new Chart(priceCtx, {
+            type: 'line',
+            data: {
+                labels: {{ dates|safe }},
+                datasets: [{
+                    label: 'Price per Liter (₹)',
+                    data: {{ daily_price|safe }},
+                    fill: false,
+                    borderColor: 'rgba(220, 53, 69, 1)',
+                    backgroundColor: 'rgba(220, 53, 69, 0.5)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Price (₹)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Toggle between weekly and monthly view
+        document.getElementById('btn-weekly').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('btn-monthly').classList.remove('active');
+            
+            revenueChart.data.labels = {{ weekly_labels|safe }};
+            revenueChart.data.datasets[0].data = {{ weekly_revenue|safe }};
+            revenueChart.data.datasets[1].data = {{ weekly_volume|safe }};
+            revenueChart.update();
+        });
+
+        document.getElementById('btn-monthly').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('btn-weekly').classList.remove('active');
+            
+            revenueChart.data.labels = {{ monthly_labels|safe }};
+            revenueChart.data.datasets[0].data = {{ monthly_revenue|safe }};
+            revenueChart.data.datasets[1].data = {{ monthly_volume|safe }};
+            revenueChart.update();
+        });
+    });
+</script>
+{% endblock %} 

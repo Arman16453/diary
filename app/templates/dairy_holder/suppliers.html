@@ -1,0 +1,401 @@
+{% extends "dairy_holder/base.html" %}
+
+{% block title %}Milk Suppliers - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Milk Suppliers</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-success">Add New Supplier</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importSuppliersModal">
+                    Import Suppliers
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Total Suppliers</h5>
+                    <p class="card-text display-5">{{ suppliers|length }}</p>
+                    <small>Active milk suppliers</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Total Quantity</h5>
+                    <p class="card-text display-5">
+                        {{ "{:,.2f}".format(suppliers|sum(attribute='total_quantity')|default(0)) }} L
+                    </p>
+                    <small>Total milk collected</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Avg. Fat %</h5>
+                    <p class="card-text display-5">
+                        {% set total_fat = suppliers|sum(attribute='avg_fat')|default(0) %}
+                        {% if suppliers|length > 0 %}
+                            {{ "{:,.1f}".format(total_fat / suppliers|length) }}
+                        {% else %}
+                            0.0
+                        {% endif %}
+                    </p>
+                    <small>Average across all suppliers</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Avg. SNF %</h5>
+                    <p class="card-text display-5">
+                        {% set total_snf = suppliers|sum(attribute='avg_snf')|default(0) %}
+                        {% if suppliers|length > 0 %}
+                            {{ "{:,.1f}".format(total_snf / suppliers|length) }}
+                        {% else %}
+                            0.0
+                        {% endif %}
+                    </p>
+                    <small>Average across all suppliers</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Search & Filter</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('dairy_holder.suppliers') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search by Name or Phone</label>
+                    <input type="text" class="form-control" id="search" name="search" placeholder="Name or Phone Number" value="{{ request.args.get('search', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="sort_by" class="form-label">Sort By</label>
+                    <select class="form-select" id="sort_by" name="sort_by">
+                        <option value="name" {% if request.args.get('sort_by') == 'name' %}selected{% endif %}>Name</option>
+                        <option value="total_quantity" {% if request.args.get('sort_by') == 'total_quantity' %}selected{% endif %}>Total Quantity</option>
+                        <option value="avg_fat" {% if request.args.get('sort_by') == 'avg_fat' %}selected{% endif %}>Fat %</option>
+                        <option value="avg_snf" {% if request.args.get('sort_by') == 'avg_snf' %}selected{% endif %}>SNF %</option>
+                        <option value="transaction_count" {% if request.args.get('sort_by') == 'transaction_count' %}selected{% endif %}>Transaction Count</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="sort_order" class="form-label">Order</label>
+                    <select class="form-select" id="sort_order" name="sort_order">
+                        <option value="asc" {% if request.args.get('sort_order') == 'asc' %}selected{% endif %}>Ascending</option>
+                        <option value="desc" {% if request.args.get('sort_order') == 'desc' or not request.args.get('sort_order') %}selected{% endif %}>Descending</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                    <a href="{{ url_for('dairy_holder.suppliers') }}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Suppliers Table -->
+    <div class="card shadow">
+        <div class="card-header">
+            <h5 class="mb-0">Supplier List</h5>
+        </div>
+        <div class="card-body">
+            {% if suppliers %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Contact Information</th>
+                            <th>Total Quantity (L)</th>
+                            <th>Quality Metrics</th>
+                            <th>Transactions</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in suppliers %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ supplier.name }}</div>
+                                <small class="text-muted">ID: {{ supplier.id }}</small>
+                            </td>
+                            <td>
+                                <div>{{ supplier.phone }}</div>
+                                <small class="text-muted">{{ supplier.email }}</small>
+                            </td>
+                            <td>{{ "{:,.2f}".format(supplier.total_quantity) }}</td>
+                            <td>
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <span class="fw-bold">Fat:</span> {{ "{:,.1f}".format(supplier.avg_fat) }}%
+                                    </div>
+                                    <div>
+                                        <span class="fw-bold">SNF:</span> {{ "{:,.1f}".format(supplier.avg_snf) }}%
+                                    </div>
+                                </div>
+                                <div class="progress mt-1" style="height: 5px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ (supplier.avg_fat / 10) * 100 }}%;" 
+                                         aria-valuenow="{{ supplier.avg_fat }}" aria-valuemin="0" aria-valuemax="10">
+                                    </div>
+                                </div>
+                                <div class="progress mt-1" style="height: 5px;">
+                                    <div class="progress-bar bg-info" role="progressbar" 
+                                         style="width: {{ (supplier.avg_snf / 10) * 100 }}%;" 
+                                         aria-valuenow="{{ supplier.avg_snf }}" aria-valuemin="0" aria-valuemax="10">
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ supplier.transaction_count }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary">View Transactions</button>
+                                    <button type="button" class="btn btn-sm btn-outline-info supplier-details-btn" data-id="{{ supplier.id }}">Details</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <p class="mb-0">No suppliers found. Start adding suppliers to manage your milk inventory!</p>
+            </div>
+            <div class="text-center my-4">
+                <button type="button" class="btn btn-primary">Add Your First Supplier</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Import Suppliers Modal -->
+<div class="modal fade" id="importSuppliersModal" tabindex="-1" aria-labelledby="importSuppliersModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importSuppliersModalLabel">Import Suppliers</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="#" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="suppliersFile" class="form-label">Upload CSV File</label>
+                        <input class="form-control" type="file" id="suppliersFile" name="suppliers_file" accept=".csv">
+                        <div class="form-text">File should contain columns: Name, Phone, Email</div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Upload and Import</button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Details Modal -->
+<div class="modal fade" id="supplierDetailsModal" tabindex="-1" aria-labelledby="supplierDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="supplierDetailsModalLabel">Supplier Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="supplierDetailsContent">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading supplier details...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Supplier Details Modal
+        const supplierDetailsBtns = document.querySelectorAll('.supplier-details-btn');
+        supplierDetailsBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const supplierId = this.getAttribute('data-id');
+                const modal = new bootstrap.Modal(document.getElementById('supplierDetailsModal'));
+                
+                // Get supplier details via API
+                fetch(`/dairy_holder/api/supplier/${supplierId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch supplier details');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const content = document.getElementById('supplierDetailsContent');
+                        
+                        // Format recent transactions
+                        let transactionsHtml = '';
+                        if (data.recent_transactions && data.recent_transactions.length > 0) {
+                            transactionsHtml = `
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Quantity</th>
+                                            <th>Fat %</th>
+                                            <th>SNF %</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                            `;
+                            
+                            data.recent_transactions.forEach(transaction => {
+                                transactionsHtml += `
+                                    <tr>
+                                        <td>${transaction.date}</td>
+                                        <td>${transaction.quantity} L</td>
+                                        <td>${transaction.fat}%</td>
+                                        <td>${transaction.snf}%</td>
+                                        <td>₹${transaction.amount}</td>
+                                    </tr>
+                                `;
+                            });
+                            
+                            transactionsHtml += `
+                                    </tbody>
+                                </table>
+                            `;
+                        } else {
+                            transactionsHtml = '<p class="text-muted">No recent transactions found.</p>';
+                        }
+                        
+                        // Build the content
+                        content.innerHTML = `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold">Basic Information</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Name</th>
+                                            <td>${data.name}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Phone</th>
+                                            <td>${data.phone}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Email</th>
+                                            <td>${data.email}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Total Quantity</th>
+                                            <td>${data.total_quantity} L</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Average Fat %</th>
+                                            <td>${data.avg_fat}%</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Average SNF %</th>
+                                            <td>${data.avg_snf}%</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Transaction Count</th>
+                                            <td>${data.transaction_count}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <canvas id="supplierQualityChart" width="100%" height="200"></canvas>
+                                </div>
+                            </div>
+                            
+                            <h6 class="fw-bold mt-4">Recent Transactions</h6>
+                            ${transactionsHtml}
+                            
+                            <div class="d-flex justify-content-end mt-3">
+                                <a href="${data.transactions_url}" class="btn btn-outline-primary btn-sm">View All Transactions</a>
+                            </div>
+                        `;
+                        
+                        // Create quality chart if data is available
+                        if (data.monthly_fat && data.monthly_snf && data.months) {
+                            const ctx = document.getElementById('supplierQualityChart').getContext('2d');
+                            new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: data.months,
+                                    datasets: [
+                                        {
+                                            label: 'Fat %',
+                                            data: data.monthly_fat,
+                                            borderColor: 'rgba(255, 99, 132, 1)',
+                                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                                            fill: true
+                                        },
+                                        {
+                                            label: 'SNF %',
+                                            data: data.monthly_snf,
+                                            borderColor: 'rgba(54, 162, 235, 1)',
+                                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                                            fill: true
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    plugins: {
+                                        title: {
+                                            display: true,
+                                            text: 'Quality Trends'
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: false
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('supplierDetailsContent').innerHTML = `
+                            <div class="alert alert-danger">
+                                Failed to load supplier details. Please try again later.
+                            </div>
+                        `;
+                    });
+                
+                modal.show();
+            });
+        });
+    });
+</script>
+{% endblock %} 

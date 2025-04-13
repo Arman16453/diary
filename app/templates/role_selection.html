@@ -1,0 +1,353 @@
+{% extends 'base.html' %}
+
+{% block title %}Role Selection - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-primary">Smart Dairy Management System</h1>
+        <p class="lead text-muted">Comprehensive milk tracking solution for the entire supply chain</p>
+    </div>
+    
+    <div class="row justify-content-center g-4">
+        {% if current_user.is_milk_seller() %}
+        <div class="col-lg-6">
+            <div class="card h-100 shadow rounded-3 border-0">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="h4 mb-0"><i class="fas fa-exchange-alt me-2"></i> Milk Seller</h2>
+                        <a href="{{ url_for('milk_seller.dashboard') }}" class="btn btn-light btn-sm">
+                            Enter Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-primary">Total Milk Sold</h5>
+                                    <h2 class="display-6 fw-bold">{{ stats.milk_seller.total_quantity|default(0) }} L</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-primary">Total Earnings</h5>
+                                    <h2 class="display-6 fw-bold">₹{{ stats.milk_seller.total_earnings|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-primary">Pending Payments</h5>
+                                    <h2 class="display-6 fw-bold">₹{{ stats.milk_seller.pending_payment|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if stats.milk_seller.recent_transactions %}
+                    <h5 class="border-bottom pb-2">Recent Transactions</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Buyer</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in stats.milk_seller.recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ transaction.buyer.username }}</td>
+                                    <td>{{ transaction.quantity }} L</td>
+                                    <td>₹{{ transaction.amount }}</td>
+                                    <td>
+                                        {% if transaction.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if current_user.is_bike_milk_seller() %}
+        <div class="col-lg-6">
+            <div class="card h-100 shadow rounded-3 border-0">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="h4 mb-0"><i class="fas fa-bicycle me-2"></i> Bike Milk Seller</h2>
+                        <a href="{{ url_for('bike_milk_seller.dashboard') }}" class="btn btn-light btn-sm">
+                            Enter Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-success">Customers</h5>
+                                    <h2 class="display-6 fw-bold">{{ stats.bike_milk_seller.customers_count|default(0) }}</h2>
+                                    <small class="text-muted">{{ stats.bike_milk_seller.active_customers|default(0) }} Active</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-success">Deliveries</h5>
+                                    <h2 class="display-6 fw-bold">{{ stats.bike_milk_seller.total_deliveries|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-success">Milk Sold</h5>
+                                    <h2 class="display-6 fw-bold">{{ stats.bike_milk_seller.total_quantity|default(0) }} L</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-success">Earnings</h5>
+                                    <h2 class="display-6 fw-bold">₹{{ stats.bike_milk_seller.total_earnings|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if stats.bike_milk_seller.recent_deliveries %}
+                    <h5 class="border-bottom pb-2">Recent Deliveries</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for delivery in stats.bike_milk_seller.recent_deliveries %}
+                                <tr>
+                                    <td>{{ delivery.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ delivery.customer_name }}</td>
+                                    <td>{{ delivery.quantity }} L</td>
+                                    <td>₹{{ delivery.total_amount }}</td>
+                                    <td>
+                                        {% if delivery.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if current_user.is_dairy_holder() %}
+        <div class="col-lg-6">
+            <div class="card h-100 shadow rounded-3 border-0">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="h4 mb-0"><i class="fas fa-store me-2"></i> Dairy Holder</h2>
+                        <a href="{{ url_for('dairy_holder.dashboard') }}" class="btn btn-light btn-sm">
+                            Enter Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-info">Total Inventory</h5>
+                                    <h2 class="display-6 fw-bold">{{ stats.dairy_holder.total_inventory|default(0) }} L</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-info">Total Spent</h5>
+                                    <h2 class="display-6 fw-bold">₹{{ stats.dairy_holder.total_spent|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-info">Pending</h5>
+                                    <h2 class="display-6 fw-bold">₹{{ stats.dairy_holder.pending_payment|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-info">Suppliers</h5>
+                                    <h2 class="display-6 fw-bold">{{ stats.dairy_holder.suppliers_count|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if stats.dairy_holder.recent_inventory %}
+                    <h5 class="border-bottom pb-2">Recent Inventory</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Supplier</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inventory in stats.dairy_holder.recent_inventory %}
+                                <tr>
+                                    <td>{{ inventory.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ inventory.supplier.username }}</td>
+                                    <td>{{ inventory.quantity }} L</td>
+                                    <td>₹{{ inventory.amount }}</td>
+                                    <td>
+                                        {% if inventory.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if current_user.is_milk_buyer() %}
+        <div class="col-lg-6">
+            <div class="card h-100 shadow rounded-3 border-0">
+                <div class="card-header bg-warning text-dark">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="h4 mb-0"><i class="fas fa-shopping-cart me-2"></i> Milk Buyer</h2>
+                        <a href="{{ url_for('milk_buyer.dashboard') }}" class="btn btn-light btn-sm">
+                            Enter Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-warning">Total Milk</h5>
+                                    <h2 class="display-6 fw-bold">{{ stats.milk_buyer.total_purchased|default(0) }} L</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-warning">Total Spent</h5>
+                                    <h2 class="display-6 fw-bold">₹{{ stats.milk_buyer.total_spent|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-warning">Pending</h5>
+                                    <h2 class="display-6 fw-bold">₹{{ stats.milk_buyer.pending_payment|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="text-warning">Suppliers</h5>
+                                    <h2 class="display-6 fw-bold">{{ stats.milk_buyer.suppliers_count|default(0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if stats.milk_buyer.recent_purchases %}
+                    <h5 class="border-bottom pb-2">Recent Purchases</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Supplier</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for purchase in stats.milk_buyer.recent_purchases %}
+                                <tr>
+                                    <td>{{ purchase.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ purchase.supplier_name }}</td>
+                                    <td>{{ purchase.quantity }} L</td>
+                                    <td>₹{{ purchase.amount }}</td>
+                                    <td>
+                                        {% if purchase.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<footer class="py-3 mt-5 bg-light">
+    <div class="container text-center">
+        <p class="mb-0">&copy; 2023 Smart Dairy & Milk Tracking System</p>
+    </div>
+</footer>
+{% endblock %} 

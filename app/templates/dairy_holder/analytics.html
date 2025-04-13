@@ -1,0 +1,390 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Analytics - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Dairy Inventory Analytics</h1>
+    <div>
+        <div class="btn-group">
+            <a href="{{ url_for('dairy_holder.analytics', period='last_30_days') }}" class="btn btn-outline-primary {% if time_period == 'last_30_days' %}active{% endif %}">
+                Last 30 Days
+            </a>
+            <a href="{{ url_for('dairy_holder.analytics', period='last_90_days') }}" class="btn btn-outline-primary {% if time_period == 'last_90_days' %}active{% endif %}">
+                Last 90 Days
+            </a>
+            <a href="{{ url_for('dairy_holder.analytics', period='last_6_months') }}" class="btn btn-outline-primary {% if time_period == 'last_6_months' %}active{% endif %}">
+                Last 6 Months
+            </a>
+            <a href="{{ url_for('dairy_holder.analytics', period='last_year') }}" class="btn btn-outline-primary {% if time_period == 'last_year' %}active{% endif %}">
+                Last Year
+            </a>
+            <a href="{{ url_for('dairy_holder.analytics', period='all_time') }}" class="btn btn-outline-primary {% if time_period == 'all_time' %}active{% endif %}">
+                All Time
+            </a>
+        </div>
+        <a href="{{ url_for('dairy_holder.dashboard') }}" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Spent</h5>
+                <h2 class="display-5">₹{{ "%.2f"|format(total_spent) }}</h2>
+                <p class="mb-0">On milk inventory</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Volume</h5>
+                <h2 class="display-5">{{ "%.1f"|format(total_volume) }}L</h2>
+                <p class="mb-0">Milk collected</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Avg. Fat %</h5>
+                <h2 class="display-5">{{ "%.1f"|format(avg_fat) }}%</h2>
+                <p class="mb-0">Fat content</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Avg. SNF %</h5>
+                <h2 class="display-5">{{ "%.1f"|format(avg_snf) }}%</h2>
+                <p class="mb-0">SNF content</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Monthly Collection Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="inventoryChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Quality Metrics</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="qualityDonutChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Monthly Quality Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="qualityLineChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Volume by Month</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="volumeChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Inventory Insights</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Most Active Supplier</h6>
+                        <p class="display-6">
+                            {% if most_active_supplier %}
+                                {% set supplier_id, supplier_data = most_active_supplier %}
+                                {{ supplier_id }}
+                            {% else %}
+                                No Data
+                            {% endif %}
+                        </p>
+                        <p class="text-muted">
+                            {% if most_active_supplier %}
+                                {% set supplier_id, supplier_data = most_active_supplier %}
+                                {{ "%.1f"|format(supplier_data.quantity) }}L supplied
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Best Quality Supplier</h6>
+                        <p class="display-6">
+                            {% if best_quality_supplier %}
+                                {% set supplier_id, supplier_data = best_quality_supplier %}
+                                {{ supplier_id }}
+                            {% else %}
+                                No Data
+                            {% endif %}
+                        </p>
+                        <p class="text-muted">
+                            {% if best_quality_supplier %}
+                                {% set supplier_id, supplier_data = best_quality_supplier %}
+                                Fat: {{ "%.1f"|format(supplier_data.avg_fat) }}%, SNF: {{ "%.1f"|format(supplier_data.avg_snf) }}%
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-light mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Most Active Month</h6>
+                        <p class="display-6">{{ most_active_month }}</p>
+                        <p class="text-muted">
+                            {% if monthly_data|length > 0 %}
+                                {% for month_key, month_data in monthly_data %}
+                                    {% if month_data.month_name == most_active_month %}
+                                        {{ "%.1f"|format(month_data.quantity) }}L collected
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Monthly Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Volume (L)</th>
+                        <th>Amount (₹)</th>
+                        <th>Avg. Fat %</th>
+                        <th>Avg. SNF %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month_key, month_data in monthly_data %}
+                    <tr>
+                        <td>{{ month_data.month_name }}</td>
+                        <td>{{ "%.1f"|format(month_data.quantity) }}</td>
+                        <td>₹{{ "%.2f"|format(month_data.amount) }}</td>
+                        <td>{{ "%.1f"|format(month_data.avg_fat) }}%</td>
+                        <td>{{ "%.1f"|format(month_data.avg_snf) }}%</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">No data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly Inventory Chart
+        const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
+        const inventoryChart = new Chart(inventoryCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ months|tojson }},
+                datasets: [
+                    {
+                        label: 'Amount Spent (₹)',
+                        data: {{ monthly_amounts|tojson }},
+                        backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Volume (L)',
+                        data: {{ monthly_quantities|tojson }},
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        tension: 0.1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Amount (₹)'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Volume (L)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Quality Line Chart
+        const qualityLineCtx = document.getElementById('qualityLineChart').getContext('2d');
+        const qualityLineChart = new Chart(qualityLineCtx, {
+            type: 'line',
+            data: {
+                labels: {{ months|tojson }},
+                datasets: [
+                    {
+                        label: 'Fat %',
+                        data: {{ monthly_fat|tojson }},
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'SNF %',
+                        data: {{ monthly_snf|tojson }},
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Percentage'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Quality Donut Chart
+        const qualityDonutCtx = document.getElementById('qualityDonutChart').getContext('2d');
+        const qualityDonutChart = new Chart(qualityDonutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Fat %', 'SNF %', 'Other'],
+                datasets: [{
+                    data: [
+                        {{ avg_fat|float }}, 
+                        {{ avg_snf|float }}, 
+                        (100 - {{ avg_fat|float }} - {{ avg_snf|float }})
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(200, 200, 200, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(200, 200, 200, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Average Milk Composition'
+                    }
+                }
+            }
+        });
+
+        // Volume Chart
+        const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+        const volumeChart = new Chart(volumeCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ months|tojson }},
+                datasets: [{
+                    label: 'Volume (Liters)',
+                    data: {{ monthly_quantities|tojson }},
+                    backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Volume (L)'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

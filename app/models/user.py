@@ -22,20 +22,57 @@ class User(UserMixin, db.Model):
     address = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships based on role
-    milk_transactions = db.relationship('MilkTransaction', backref='user', lazy=True)
-    delivery_transactions = db.relationship('DeliveryTransaction', backref='user', lazy=True)
-    dairy_stocks = db.relationship('DairyStock', backref='user', lazy=True)
-    purchase_transactions = db.relationship('PurchaseTransaction', backref='user', lazy=True)
+    # Relationships based on role with explicit foreign_keys
+    milk_transactions_as_seller = db.relationship(
+        'MilkTransaction', 
+        foreign_keys='MilkTransaction.seller_id',
+        backref='seller', 
+        lazy=True
+    )
+    
+    milk_transactions_as_buyer = db.relationship(
+        'MilkTransaction',
+        foreign_keys='MilkTransaction.buyer_id',
+        backref='buyer',
+        lazy=True
+    )
+    
+    delivery_transactions = db.relationship(
+        'DeliveryTransaction', 
+        foreign_keys='DeliveryTransaction.bike_seller_id',
+        backref='bike_seller', 
+        lazy=True
+    )
+    
+    dairy_stocks = db.relationship(
+        'DairyStock', 
+        foreign_keys='DairyStock.dairy_holder_id',
+        backref='dairy_holder', 
+        lazy=True
+    )
+    
+    purchase_transactions = db.relationship(
+        'PurchaseTransaction', 
+        foreign_keys='PurchaseTransaction.buyer_id',
+        backref='buyer', 
+        lazy=True
+    )
+    
+    inventory_items = db.relationship(
+        'Inventory',
+        foreign_keys='Inventory.user_id',
+        backref='owner',
+        lazy=True
+    )
     
     def is_milk_seller(self):
-        return self.role == UserRole.MILK_SELLER
+        return self.role == UserRole.MILK_SELLER or self.role == 'multi_role'
     
     def is_bike_milk_seller(self):
-        return self.role == UserRole.BIKE_MILK_SELLER
+        return self.role == UserRole.BIKE_MILK_SELLER or self.role == 'multi_role'
     
     def is_dairy_holder(self):
-        return self.role == UserRole.DAIRY_HOLDER
+        return self.role == UserRole.DAIRY_HOLDER or self.role == 'multi_role'
         
     def is_milk_buyer(self):
-        return self.role == UserRole.MILK_BUYER 
+        return self.role == UserRole.MILK_BUYER or self.role == 'multi_role' 

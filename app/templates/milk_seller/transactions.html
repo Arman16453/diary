@@ -17,6 +17,7 @@
                 <thead>
                     <tr>
                         <th>Date</th>
+                        <th>Buyer Type</th>
                         <th>Quantity (L)</th>
                         <th>Price (₹/L)</th>
                         <th>Fat %</th>
@@ -29,6 +30,15 @@
                     {% for transaction in transactions.items %}
                         <tr>
                             <td>{{ transaction.date.strftime('%d-%m-%Y') }}</td>
+                            <td>
+                                {% if transaction.buyer_type == 'dairy_holder' %}
+                                    <span class="badge bg-primary">Dairy Holder</span>
+                                {% elif transaction.buyer_type == 'bike_milk_seller' %}
+                                    <span class="badge bg-success">Bike Milk Seller</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">General</span>
+                                {% endif %}
+                            </td>
                             <td>{{ "%.1f"|format(transaction.quantity) }}</td>
                             <td>{{ "%.2f"|format(transaction.price_per_liter) }}</td>
                             <td>{{ "%.1f"|format(transaction.fat_percentage) }}</td>
@@ -44,7 +54,7 @@
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="7" class="text-center">No transactions found</td>
+                            <td colspan="8" class="text-center">No transactions found</td>
                         </tr>
                     {% endfor %}
                 </tbody>

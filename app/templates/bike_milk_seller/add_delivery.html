@@ -12,20 +12,24 @@
             <div class="card-body">
                 <form method="POST" action="{{ url_for('bike_milk_seller.add_delivery') }}">
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="customer_name" class="form-label">Customer Name</label>
-                            <input type="text" class="form-control" id="customer_name" name="customer_name" value="{{ customer_name }}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="customer_address" class="form-label">Customer Address</label>
-                            <textarea class="form-control" id="customer_address" name="customer_address" rows="1" required>{{ customer_address }}</textarea>
+                        <div class="col-md-12">
+                            <label for="customer_id" class="form-label">Select Customer</label>
+                            <select class="form-select" id="customer_id" name="customer_id" required>
+                                <option value="" disabled {% if not customer %}selected{% endif %}>-- Select a customer --</option>
+                                {% for cust in customers %}
+                                <option value="{{ cust.id }}" {% if customer and customer.id == cust.id %}selected{% endif %}>
+                                    {{ cust.name }} - {{ cust.address }} (Daily: {{ cust.daily_quantity }} L)
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="quantity" class="form-label">Quantity (Liters)</label>
-                            <input type="number" step="0.1" min="0.1" class="form-control" id="quantity" name="quantity" required>
+                            <input type="number" step="0.1" min="0.1" class="form-control" id="quantity" name="quantity" 
+                                  value="{{ customer.daily_quantity if customer else '' }}" required>
                         </div>
                         <div class="col-md-6">
                             <label for="price_per_liter" class="form-label">Price per Liter (₹)</label>
@@ -53,7 +57,7 @@
                     </div>
                     
                     <div class="d-flex justify-content-between mt-3">
-                        <a href="{{ url_for('bike_milk_seller.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <a href="{{ url_for('bike_milk_seller.customer_list') }}" class="btn btn-outline-secondary">Back to Customers</a>
                         <button type="submit" class="btn btn-primary">Add Delivery</button>
                     </div>
                 </form>
@@ -80,6 +84,19 @@
         
         quantityInput.addEventListener('input', calculateTotal);
         pricePerLiterInput.addEventListener('input', calculateTotal);
+        
+        // Auto-populate quantity from selected customer's daily quantity
+        const customerSelect = document.getElementById('customer_id');
+        customerSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.textContent) {
+                const dailyQtyMatch = selectedOption.textContent.match(/Daily: ([\d.]+) L/);
+                if (dailyQtyMatch && dailyQtyMatch[1]) {
+                    quantityInput.value = dailyQtyMatch[1];
+                    calculateTotal();
+                }
+            }
+        });
     });
 </script>
 {% endblock %} 

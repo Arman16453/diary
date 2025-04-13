@@ -31,6 +31,9 @@
                                 <a class="nav-link" href="{{ url_for('milk_seller.dashboard') }}">Dashboard</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('milk_seller.sell_milk') }}">Sell Milk</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('milk_seller.transactions') }}">Transactions</a>
                             </li>
                             <li class="nav-item">
@@ -45,6 +48,9 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('bike_milk_seller.customer_list') }}">Customers</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('bike_milk_seller.milk_purchases') }}">Milk Purchases</a>
                             </li>
                         {% elif current_user.is_dairy_holder() %}
                             <li class="nav-item">
@@ -84,6 +90,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('main.index') }}">Switch Role</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
                             </ul>

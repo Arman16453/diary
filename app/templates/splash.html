@@ -1,12 +1,87 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="splash-container text-center">
-    <div class="splash-logo">
-        <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Dairy Management System Logo" class="img-fluid animated-logo">
-        <h1 class="mt-4 app-title">Smart Dairy & Milk Tracking System</h1>
-        <div class="spinner-border text-primary mt-4" role="status">
-            <span class="visually-hidden">Loading...</span>
+<div class="container py-5">
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8 text-center">
+            <h1 class="display-4 mb-3">Smart Dairy Management System</h1>
+            <p class="lead">Comprehensive milk tracking solution for the entire supply chain</p>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <span class="text-primary" style="font-size: 4rem;">
+                            <i class="fas fa-cow"></i>
+                        </span>
+                    </div>
+                    <h2 class="card-title mb-3">Milk Seller</h2>
+                    <p class="card-text text-muted mb-4">Sell milk to dairy holders and bike milk sellers</p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-5">
+                        Enter Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <span class="text-success" style="font-size: 4rem;">
+                            <i class="fas fa-bicycle"></i>
+                        </span>
+                    </div>
+                    <h2 class="card-title mb-3">Bike Milk Seller</h2>
+                    <p class="card-text text-muted mb-4">Deliver milk to customers</p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-success btn-lg px-5">
+                        Enter Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <span class="text-info" style="font-size: 4rem;">
+                            <i class="fas fa-store"></i>
+                        </span>
+                    </div>
+                    <h2 class="card-title mb-3">Dairy Holder</h2>
+                    <p class="card-text text-muted mb-4">Process and distribute milk products</p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-info btn-lg px-5 text-white">
+                        Enter Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <span class="text-warning" style="font-size: 4rem;">
+                            <i class="fas fa-shopping-cart"></i>
+                        </span>
+                    </div>
+                    <h2 class="card-title mb-3">Milk Buyer</h2>
+                    <p class="card-text text-muted mb-4">Purchase milk from suppliers</p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-lg px-5">
+                        Enter Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 text-center">
+            <p class="text-muted">Already registered? <a href="{{ url_for('auth.login') }}">Login here</a></p>
         </div>
     </div>
 </div>
@@ -14,44 +89,14 @@
 
 {% block scripts %}
 <style>
-    .splash-container {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        height: 80vh;
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 15px;
     }
     
-    .animated-logo {
-        max-width: 250px;
-        animation: pulse 2s infinite;
-    }
-    
-    .app-title {
-        color: #0d6efd;
-        font-weight: 600;
-    }
-    
-    @keyframes pulse {
-        0% {
-            transform: scale(0.95);
-            opacity: 0.7;
-        }
-        50% {
-            transform: scale(1.05);
-            opacity: 1;
-        }
-        100% {
-            transform: scale(0.95);
-            opacity: 0.7;
-        }
+    .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
 </style>
-
-<script>
-    // Redirect to login page after 3 seconds
-    setTimeout(function() {
-        window.location.href = "{{ url_for('auth.login') }}";
-    }, 3000);
-</script>
 {% endblock %} 

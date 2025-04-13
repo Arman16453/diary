@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Sell to Bike Milk Seller - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Sell Milk to Bike Milk Seller</h1>
+    
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="card-title mb-0">Transaction Details</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('milk_seller.sell_to_bike_seller') }}">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Select Bike Milk Seller</label>
+                            <select name="bike_seller_id" class="form-select" required>
+                                <option value="">-- Select Bike Milk Seller --</option>
+                                {% for seller in bike_sellers %}
+                                    <option value="{{ seller.id }}" 
+                                        {% if selected_bike_seller and selected_bike_seller.id == seller.id %}selected{% endif %}>
+                                        {{ seller.name }} ({{ seller.email }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label fw-bold">Quantity (Liters)</label>
+                                    <input type="number" class="form-control" id="quantity" name="quantity" 
+                                           step="0.1" min="0.1" required placeholder="Enter quantity in liters">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="price_per_liter" class="form-label fw-bold">Price Per Liter (₹)</label>
+                                    <input type="number" class="form-control" id="price_per_liter" name="price_per_liter" 
+                                           step="0.1" min="0.1" required placeholder="Enter price per liter">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fat_percentage" class="form-label fw-bold">Fat Percentage (%)</label>
+                                    <input type="number" class="form-control" id="fat_percentage" name="fat_percentage" 
+                                           step="0.01" min="0" max="100" required placeholder="Enter fat percentage">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="snf_percentage" class="form-label fw-bold">SNF Percentage (%)</label>
+                                    <input type="number" class="form-control" id="snf_percentage" name="snf_percentage" 
+                                           step="0.01" min="0" max="100" required placeholder="Enter SNF percentage">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mb-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle me-2 fs-5"></i>
+                                <div>
+                                    <strong>Total Amount:</strong> 
+                                    <span id="total-amount">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle me-2"></i> Complete Transaction
+                            </button>
+                            <a href="{{ url_for('milk_seller.sell_milk') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i> Back to Selection
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const quantityInput = document.getElementById('quantity');
+        const priceInput = document.getElementById('price_per_liter');
+        const totalAmountDisplay = document.getElementById('total-amount');
+        
+        const calculateTotal = () => {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = quantity * price;
+            totalAmountDisplay.textContent = `₹${total.toFixed(2)}`;
+        };
+        
+        quantityInput.addEventListener('input', calculateTotal);
+        priceInput.addEventListener('input', calculateTotal);
+    });
+</script>
+{% endblock %} 

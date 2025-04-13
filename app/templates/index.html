@@ -22,13 +22,15 @@
                 <a href="{{ url_for('bike_milk_seller.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
             {% elif current_user.is_dairy_holder() %}
                 <a href="{{ url_for('dairy_holder.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+            {% elif current_user.is_milk_buyer() %}
+                <a href="{{ url_for('milk_buyer.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
             {% endif %}
         </div>
     {% endif %}
 </div>
 
 <div class="row mt-5">
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
                 <i class="fas fa-cow fa-3x mb-3 text-primary"></i>
@@ -38,7 +40,7 @@
         </div>
     </div>
     
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
                 <i class="fas fa-motorcycle fa-3x mb-3 text-primary"></i>
@@ -48,12 +50,22 @@
         </div>
     </div>
     
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
                 <i class="fas fa-warehouse fa-3x mb-3 text-primary"></i>
                 <h3 class="card-title">Dairy Holders</h3>
                 <p class="card-text">Monitor inventory levels, manage milk quality, and generate comprehensive reports for your dairy business.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-basket fa-3x mb-3 text-primary"></i>
+                <h3 class="card-title">Milk Buyers</h3>
+                <p class="card-text">Purchase and track milk from suppliers, manage inventory, and monitor quality metrics.</p>
             </div>
         </div>
     </div>

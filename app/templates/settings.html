@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings - Smart Dairy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Settings</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="#account-section" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                        <i class="fas fa-user-cog me-2"></i> Account Settings
+                    </a>
+                    <a href="#notification-section" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-bell me-2"></i> Notifications
+                    </a>
+                    <a href="#privacy-section" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-lock me-2"></i> Privacy & Security
+                    </a>
+                    <a href="#preferences-section" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-sliders-h me-2"></i> Preferences
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="tab-content">
+                <!-- Account Settings -->
+                <div class="tab-pane fade show active" id="account-section">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Account Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="#" method="post">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.phone }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="address" class="form-label">Address</label>
+                                    <textarea class="form-control" id="address" name="address" rows="3">{{ user.address }}</textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary" disabled>Save Changes</button>
+                                <small class="text-muted ms-2">(Feature coming soon)</small>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notifications -->
+                <div class="tab-pane fade" id="notification-section">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Notification Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-4">Configure how you receive notifications from the system.</p>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="emailNotifications" checked disabled>
+                                <label class="form-check-label" for="emailNotifications">Email Notifications</label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="smsNotifications" disabled>
+                                <label class="form-check-label" for="smsNotifications">SMS Notifications</label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="lowStockAlerts" checked disabled>
+                                <label class="form-check-label" for="lowStockAlerts">Low Stock Alerts</label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="paymentReminders" checked disabled>
+                                <label class="form-check-label" for="paymentReminders">Payment Reminders</label>
+                            </div>
+                            
+                            <button class="btn btn-primary" disabled>Save Preferences</button>
+                            <small class="text-muted ms-2">(Feature coming soon)</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Privacy & Security -->
+                <div class="tab-pane fade" id="privacy-section">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Privacy & Security</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h6>Change Password</h6>
+                                <form>
+                                    <div class="mb-3">
+                                        <label for="currentPassword" class="form-label">Current Password</label>
+                                        <input type="password" class="form-control" id="currentPassword">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="newPassword" class="form-label">New Password</label>
+                                        <input type="password" class="form-control" id="newPassword">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                                        <input type="password" class="form-control" id="confirmPassword">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" disabled>Change Password</button>
+                                    <small class="text-muted ms-2">(Feature coming soon)</small>
+                                </form>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="mb-3">
+                                <h6>Two-Factor Authentication</h6>
+                                <p class="text-muted">Enhance your account security by enabling two-factor authentication.</p>
+                                <button class="btn btn-outline-primary" disabled>Enable 2FA</button>
+                                <small class="text-muted ms-2">(Feature coming soon)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Preferences -->
+                <div class="tab-pane fade" id="preferences-section">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Application Preferences</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="language" class="form-label">Language</label>
+                                <select class="form-select" id="language" disabled>
+                                    <option value="en" selected>English</option>
+                                    <option value="hi">Hindi</option>
+                                    <option value="gu">Gujarati</option>
+                                    <option value="mr">Marathi</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="dateFormat" class="form-label">Date Format</label>
+                                <select class="form-select" id="dateFormat" disabled>
+                                    <option value="dd/mm/yyyy" selected>DD/MM/YYYY</option>
+                                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                                    <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="theme" class="form-label">Theme</label>
+                                <select class="form-select" id="theme" disabled>
+                                    <option value="light" selected>Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="system">System Default</option>
+                                </select>
+                            </div>
+                            
+                            <button class="btn btn-primary" disabled>Save Preferences</button>
+                            <small class="text-muted ms-2">(Feature coming soon)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle tab switching
+        const tabLinks = document.querySelectorAll('.list-group-item');
+        
+        tabLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Remove active class from all tabs
+                tabLinks.forEach(tab => tab.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                this.classList.add('active');
+            });
+        });
+    });
+</script>
+{% endblock %} 

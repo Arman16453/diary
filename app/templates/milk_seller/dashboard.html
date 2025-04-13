@@ -5,9 +5,14 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Milk Seller Dashboard</h1>
-    <a href="{{ url_for('milk_seller.add_transaction') }}" class="btn btn-primary">
-        <i class="fas fa-plus me-1"></i> Add Transaction
-    </a>
+    <div>
+        <a href="{{ url_for('milk_seller.sell_milk') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Sell Milk
+        </a>
+        <a href="{{ url_for('milk_seller.add_transaction') }}" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-file-invoice me-1"></i> Record Transaction
+        </a>
+    </div>
 </div>
 
 <div class="row">
@@ -42,8 +47,66 @@
     </div>
 </div>
 
-<div class="row">
+<!-- Quick Access Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-exchange-alt fa-3x mb-3 text-primary"></i>
+                <h5 class="card-title">Transactions</h5>
+                <p class="card-text">Manage your milk sale transactions</p>
+                <a href="{{ url_for('milk_seller.transactions') }}" class="btn btn-outline-primary">View Transactions</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-3x mb-3 text-success"></i>
+                <h5 class="card-title">Customers</h5>
+                <p class="card-text">View and manage your customers</p>
+                <a href="{{ url_for('milk_seller.customers') }}" class="btn btn-outline-success">View Customers</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x mb-3 text-info"></i>
+                <h5 class="card-title">Analytics</h5>
+                <p class="card-text">Advanced analytics and insights</p>
+                <a href="{{ url_for('milk_seller.analytics') }}" class="btn btn-outline-info">View Analytics</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-check-circle fa-3x mb-3 text-warning"></i>
+                <h5 class="card-title">Quality Metrics</h5>
+                <p class="card-text">Track milk quality parameters</p>
+                <a href="{{ url_for('milk_seller.quality') }}" class="btn btn-outline-warning">View Quality</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Supply Chart -->
+<div class="row mb-4">
     <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Monthly Supply Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="supplyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center bg-light">
                 <h5 class="mb-0">Recent Transactions</h5>
@@ -76,7 +139,9 @@
                                         {% if transaction.is_paid %}
                                             <span class="badge bg-success">Paid</span>
                                         {% else %}
-                                            <span class="badge bg-warning text-dark">Pending</span>
+                                            <form method="POST" action="{{ url_for('milk_seller.mark_paid', transaction_id=transaction.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-warning">Mark as Paid</button>
+                                            </form>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -91,11 +156,112 @@
             </div>
         </div>
     </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Quality Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Average Fat Percentage</label>
+                    <div class="progress">
+                        {% set avg_fat = transactions|map(attribute='fat_percentage')|sum / transactions|length if transactions else 0 %}
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ avg_fat * 10 }}%;" aria-valuenow="{{ avg_fat }}" aria-valuemin="0" aria-valuemax="10">{{ "%.1f"|format(avg_fat) }}%</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Average SNF Percentage</label>
+                    <div class="progress">
+                        {% set avg_snf = transactions|map(attribute='snf_percentage')|sum / transactions|length if transactions else 0 %}
+                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ avg_snf * 10 }}%;" aria-valuenow="{{ avg_snf }}" aria-valuemin="0" aria-valuemax="10">{{ "%.1f"|format(avg_snf) }}%</div>
+                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('milk_seller.quality') }}" class="btn btn-outline-primary">View Detailed Quality Report</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Reports</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Total Transactions</span>
+                        <span class="badge bg-primary rounded-pill">{{ transactions|length }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Pending Payments</span>
+                        <span class="badge bg-warning rounded-pill">{{ transactions|selectattr('is_paid', 'equalto', false)|list|length }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Completed Payments</span>
+                        <span class="badge bg-success rounded-pill">{{ transactions|selectattr('is_paid', 'equalto', true)|list|length }}</span>
+                    </li>
+                </ul>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('milk_seller.reports') }}" class="btn btn-outline-primary">View Full Reports</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script>
-    // Add any dashboard-specific JavaScript here
+    // Monthly supply chart
+    const ctx = document.getElementById('supplyChart').getContext('2d');
+    const supplyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_dates|safe }},
+            datasets: [{
+                label: 'Milk Supplied (L)',
+                data: {{ chart_quantities|safe }},
+                fill: true,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                tension: 0.1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Liters'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Quantity: ${context.parsed.y.toFixed(1)} L`;
+                        }
+                    }
+                }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
 </script>
 {% endblock %} 
