@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, Response, jsonify
 from flask_login import login_required, current_user, logout_user
 from app import db
-from app.models.transactions import DairyStock, MilkTransaction, Inventory, PurchaseTransaction, InventoryTransaction
+from app.models.transactions import DairyStock, MilkTransaction, Inventory, PurchaseTransaction, InventoryTransaction, MilkSaleTransaction
 from app.models.user import UserRole, User
 from datetime import datetime, date, timedelta
 import csv
@@ -9,6 +9,7 @@ import io
 from sqlalchemy import func, extract, desc
 from app.utils.constants import USER_ROLES
 from functools import wraps
+from fpdf import FPDF
 
 dairy_holder = Blueprint('dairy_holder', __name__, url_prefix='/dairy_holder')
 
@@ -807,4 +808,505 @@ def get_supplier_details(supplier_id):
         'monthly_fat': monthly_fat,
         'monthly_snf': monthly_snf,
         'transactions_url': url_for('dairy_holder.inventory', supplier=supplier_id)
-    }) 
+    })
+
+@dairy_holder.route('/print_receipt/<int:inventory_id>')
+@role_required
+def print_receipt(inventory_id):
+    # Get the inventory transaction details
+    inventory = InventoryTransaction.query.get_or_404(inventory_id)
+    
+    # Verify that this inventory belongs to the current user
+    if inventory.dairy_holder_id != current_user.id:
+        flash('You do not have permission to access this receipt.', 'danger')
+        return redirect(url_for('dairy_holder.inventory'))
+    
+    # Get supplier information
+    supplier = None
+    if inventory.supplier_id:
+        supplier = User.query.filter_by(id=inventory.supplier_id).first()
+    
+    # Create the PDF receipt
+    pdf = FPDF(format='A6')  # A6 is a good size for a receipt
+    pdf.add_page()
+    
+    # Set up fonts
+    pdf.set_font('Arial', 'B', 12)
+    
+    # Header
+    pdf.cell(0, 10, 'SMART DAIRY - INVENTORY RECEIPT', 0, 1, 'C')
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(0, 5, f'Receipt Date: {datetime.now().strftime("%d-%m-%Y %H:%M")}', 0, 1, 'C')
+    pdf.cell(0, 5, f'Transaction Date: {inventory.transaction_date.strftime("%d-%m-%Y")}', 0, 1, 'C')
+    pdf.cell(0, 5, f'Transaction ID: {inventory.id}', 0, 1, 'C')
+    pdf.line(10, 30, 140, 30)
+    
+    # Dairy Holder and Supplier Info
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'TRANSACTION DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(40, 5, 'Dairy Holder:', 0, 0, 'L')
+    pdf.cell(0, 5, current_user.username, 0, 1, 'L')
+    
+    if supplier:
+        pdf.cell(40, 5, 'Supplier:', 0, 0, 'L')
+        pdf.cell(0, 5, supplier.username, 0, 1, 'L')
+        pdf.cell(40, 5, 'Supplier Type:', 0, 0, 'L')
+        role_name = "Milk Seller" if supplier.role == UserRole.MILK_SELLER else "Bike Milk Seller"
+        pdf.cell(0, 5, role_name, 0, 1, 'L')
+    
+    pdf.line(10, 55, 140, 55)
+    
+    # Inventory Details
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'MILK DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(60, 5, 'Milk Type:', 0, 0, 'L')
+    pdf.cell(0, 5, inventory.milk_type.capitalize(), 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Quantity:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{inventory.quantity:.2f} L', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Price per Liter:', 0, 0, 'L')
+    pdf.cell(0, 5, f'Rs. {inventory.price_per_liter:.2f}', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Fat Percentage:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{inventory.fat_percentage:.1f}%', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'SNF Percentage:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{inventory.snf_percentage:.1f}%', 0, 1, 'L')
+    
+    pdf.line(10, 90, 140, 90)
+    
+    # Payment Details
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'PAYMENT DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(60, 5, 'Total Amount:', 0, 0, 'L')
+    pdf.cell(0, 5, f'Rs. {inventory.total_amount:.2f}', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Payment Status:', 0, 0, 'L')
+    pdf.cell(0, 5, 'PAID' if inventory.is_paid else 'PENDING', 0, 1, 'L')
+    
+    if inventory.is_paid and inventory.payment_date:
+        pdf.cell(60, 5, 'Payment Date:', 0, 0, 'L')
+        pdf.cell(0, 5, inventory.payment_date.strftime('%d-%m-%Y'), 0, 1, 'L')
+    
+    # Notes
+    if inventory.notes:
+        pdf.cell(60, 5, 'Notes:', 0, 0, 'L')
+        pdf.cell(0, 5, inventory.notes[:30] + '...' if len(inventory.notes) > 30 else inventory.notes, 0, 1, 'L')
+    
+    # Footer
+    pdf.line(10, 115, 140, 115)
+    pdf.set_font('Arial', 'I', 6)
+    pdf.cell(0, 10, 'This is a computer generated receipt and does not require signature.', 0, 1, 'C')
+    pdf.cell(0, 5, 'Smart Dairy & Milk Tracking System', 0, 1, 'C')
+    
+    # Generate PDF content
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    pdf_output.seek(0)
+    
+    # Return the PDF as a response
+    return Response(
+        pdf_output,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=inventory_receipt_{inventory.id}.pdf"}
+    )
+
+@dairy_holder.route('/milk_transactions')
+@role_required
+def milk_transactions():
+    try:
+        # Get current inventory status
+        total_purchases = InventoryTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).with_entities(db.func.sum(InventoryTransaction.quantity)).scalar() or 0
+        
+        # Check for milk_sale_transaction table
+        total_sales = 0
+        try:
+            total_sales = MilkSaleTransaction.query.filter_by(
+                dairy_holder_id=current_user.id
+            ).with_entities(db.func.sum(MilkSaleTransaction.quantity)).scalar() or 0
+        except Exception as e:
+            print(f"Error fetching milk sales: {str(e)}")
+            # Continue with total_sales = 0
+        
+        # Calculate current inventory
+        total_inventory = total_purchases - total_sales
+        
+        # Get milk type breakdown
+        milk_types = ['cow', 'buffalo', 'mixed']
+        milk_type_data = []
+        
+        for milk_type in milk_types:
+            # Calculate purchases of this type
+            type_purchases = InventoryTransaction.query.filter_by(
+                dairy_holder_id=current_user.id, 
+                milk_type=milk_type
+            ).with_entities(db.func.sum(InventoryTransaction.quantity)).scalar() or 0
+            
+            # Calculate sales of this type
+            type_sales = 0
+            try:
+                type_sales = MilkSaleTransaction.query.filter_by(
+                    dairy_holder_id=current_user.id,
+                    milk_type=milk_type
+                ).with_entities(db.func.sum(MilkSaleTransaction.quantity)).scalar() or 0
+            except Exception as e:
+                print(f"Error fetching milk sales for type {milk_type}: {str(e)}")
+                # Continue with type_sales = 0
+            
+            # Calculate net inventory of this type
+            type_inventory = type_purchases - type_sales
+            
+            # Calculate percentage of total
+            type_percentage = 0
+            if total_inventory > 0:
+                type_percentage = (type_inventory / total_inventory) * 100
+            
+            milk_type_data.append({
+                'type': milk_type.capitalize(),
+                'quantity': type_inventory,
+                'percentage': type_percentage
+            })
+        
+        # Get today's transactions
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        todays_purchases = InventoryTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).filter(InventoryTransaction.transaction_date >= today_start
+        ).with_entities(db.func.sum(InventoryTransaction.quantity)).scalar() or 0
+        
+        todays_sales = 0
+        try:
+            todays_sales = MilkSaleTransaction.query.filter_by(
+                dairy_holder_id=current_user.id
+            ).filter(MilkSaleTransaction.date >= today_start
+            ).with_entities(db.func.sum(MilkSaleTransaction.quantity)).scalar() or 0
+        except Exception as e:
+            print(f"Error fetching today's milk sales: {str(e)}")
+            # Continue with todays_sales = 0
+        
+        # Get suppliers for dropdown list
+        suppliers = User.query.filter(
+            User.role.in_([UserRole.MILK_SELLER, UserRole.BIKE_MILK_SELLER])
+        ).all()
+        
+        # Get buyers for dropdown list (can be milk buyers or end customers)
+        buyers = User.query.filter_by(role=UserRole.MILK_BUYER).all()
+        
+        # Get recent milk transactions (both buy and sell)
+        recent_buy_transactions = InventoryTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).order_by(InventoryTransaction.transaction_date.desc()).limit(5).all()
+        
+        # Get recent milk sale transactions
+        recent_sell_transactions = []
+        try:
+            recent_sell_transactions = MilkSaleTransaction.query.filter_by(
+                dairy_holder_id=current_user.id
+            ).order_by(MilkSaleTransaction.date.desc()).limit(5).all()
+        except Exception as e:
+            print(f"Error fetching recent milk sales: {str(e)}")
+            # Continue with recent_sell_transactions = []
+        
+        return render_template('dairy_holder/milk_transactions.html',
+                              total_inventory=total_inventory,
+                              milk_type_data=milk_type_data,
+                              todays_purchases=todays_purchases,
+                              todays_sales=todays_sales,
+                              suppliers=suppliers,
+                              buyers=buyers,
+                              recent_buy_transactions=recent_buy_transactions,
+                              recent_sell_transactions=recent_sell_transactions)
+    except Exception as e:
+        flash(f"An error occurred while loading Milk Transactions: {str(e)}", "danger")
+        print(f"Error in milk_transactions: {str(e)}")
+        return redirect(url_for('dairy_holder.dashboard'))
+
+@dairy_holder.route('/add_milk_purchase', methods=['POST'])
+@role_required
+def add_milk_purchase():
+    supplier_id = request.form.get('supplier_id')
+    milk_type = request.form.get('milk_type')
+    quantity = float(request.form.get('quantity'))
+    price_per_liter = float(request.form.get('price_per_liter'))
+    fat_percentage = float(request.form.get('fat_percentage'))
+    snf_percentage = float(request.form.get('snf_percentage'))
+    notes = request.form.get('notes', '')
+    is_paid = 'is_paid' in request.form
+    
+    # Create new inventory transaction (milk purchase)
+    supplier = User.query.get(supplier_id)
+    if not supplier:
+        flash('Invalid supplier selection', 'danger')
+        return redirect(url_for('dairy_holder.milk_transactions'))
+    
+    transaction = InventoryTransaction(
+        dairy_holder_id=current_user.id,
+        supplier_id=supplier_id,
+        supplier_name=supplier.name,
+        milk_type=milk_type,
+        quantity=quantity,
+        price_per_liter=price_per_liter,
+        fat_percentage=fat_percentage,
+        snf_percentage=snf_percentage,
+        total_amount=quantity * price_per_liter,
+        transaction_date=datetime.utcnow(),
+        is_paid=is_paid,
+        payment_date=datetime.utcnow() if is_paid else None,
+        notes=notes
+    )
+    
+    db.session.add(transaction)
+    db.session.commit()
+    
+    flash('Milk purchase added successfully!', 'success')
+    return redirect(url_for('dairy_holder.milk_transactions'))
+
+@dairy_holder.route('/add_milk_sale', methods=['POST'])
+@role_required
+def add_milk_sale():
+    try:
+        buyer_id = request.form.get('buyer_id', '')
+        buyer_name = request.form.get('customer_name', '')
+        milk_type = request.form.get('milk_type')
+        quantity = float(request.form.get('quantity'))
+        price_per_liter = float(request.form.get('price_per_liter'))
+        fat_percentage = float(request.form.get('fat_percentage', 0) or 0)
+        snf_percentage = float(request.form.get('snf_percentage', 0) or 0)
+        notes = request.form.get('notes', '')
+        is_paid = 'is_paid' in request.form
+        
+        # Check if we have enough inventory
+        total_purchases = InventoryTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).with_entities(db.func.sum(InventoryTransaction.quantity)).scalar() or 0
+        
+        # Also check for existing sales to get the true current inventory
+        total_sales = 0
+        try:
+            total_sales = MilkSaleTransaction.query.filter_by(
+                dairy_holder_id=current_user.id
+            ).with_entities(db.func.sum(MilkSaleTransaction.quantity)).scalar() or 0
+        except Exception as e:
+            print(f"Error checking total milk sales: {str(e)}")
+            # Continue with total_sales = 0
+        
+        # Calculate actual inventory
+        actual_inventory = total_purchases - total_sales
+        
+        if quantity > actual_inventory:
+            flash('Not enough inventory to complete this sale. Current inventory: {:.2f} L'.format(actual_inventory), 'danger')
+            return redirect(url_for('dairy_holder.milk_transactions'))
+        
+        # If buyer_id is provided and valid, use the buyer's name from the database
+        buyer_display_name = buyer_name
+        if buyer_id:
+            buyer = User.query.get(buyer_id)
+            if buyer:
+                buyer_display_name = buyer.name
+        
+        # Create a MilkSaleTransaction record
+        sale_transaction = MilkSaleTransaction(
+            dairy_holder_id=current_user.id,
+            buyer_id=buyer_id if buyer_id else None,
+            buyer_name=buyer_display_name if buyer_display_name else 'Direct Customer',
+            milk_type=milk_type,
+            quantity=quantity,
+            price_per_liter=price_per_liter,
+            total_amount=quantity * price_per_liter,
+            fat_percentage=fat_percentage,
+            snf_percentage=snf_percentage,
+            date=datetime.utcnow(),
+            is_paid=is_paid,
+            payment_date=datetime.utcnow() if is_paid else None,
+            notes=notes
+        )
+        
+        try:
+            db.session.add(sale_transaction)
+            db.session.commit()
+            flash('Milk sale recorded successfully! Inventory has been updated.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error recording milk sale: {str(e)}', 'danger')
+            print(f"Database error in add_milk_sale: {str(e)}")
+            
+        return redirect(url_for('dairy_holder.milk_transactions'))
+    except Exception as e:
+        flash(f'An error occurred while processing your request: {str(e)}', 'danger')
+        print(f"General error in add_milk_sale: {str(e)}")
+        return redirect(url_for('dairy_holder.milk_transactions'))
+
+@dairy_holder.route('/milk_manager')
+@role_required
+def milk_manager():
+    try:
+        # Get current inventory status
+        total_purchases = InventoryTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).with_entities(db.func.sum(InventoryTransaction.quantity)).scalar() or 0
+        
+        # Check if milk_sale_transaction table exists
+        total_sales = 0
+        try:
+            total_sales = MilkSaleTransaction.query.filter_by(
+                dairy_holder_id=current_user.id
+            ).with_entities(db.func.sum(MilkSaleTransaction.quantity)).scalar() or 0
+        except Exception as e:
+            print(f"Error fetching milk sales: {str(e)}")
+            # If there's an error, we continue with total_sales = 0
+        
+        # Calculate current inventory
+        total_inventory = total_purchases - total_sales
+        
+        # Get milk type breakdown
+        milk_types = ['cow', 'buffalo', 'mixed']
+        milk_type_data = []
+        
+        for milk_type in milk_types:
+            # Calculate purchases of this type
+            type_purchases = InventoryTransaction.query.filter_by(
+                dairy_holder_id=current_user.id, 
+                milk_type=milk_type
+            ).with_entities(db.func.sum(InventoryTransaction.quantity)).scalar() or 0
+            
+            # Calculate sales of this type
+            type_sales = MilkSaleTransaction.query.filter_by(
+                dairy_holder_id=current_user.id,
+                milk_type=milk_type
+            ).with_entities(db.func.sum(MilkSaleTransaction.quantity)).scalar() or 0
+            
+            # Calculate net inventory of this type
+            type_inventory = type_purchases - type_sales
+            
+            # Calculate percentage of total
+            type_percentage = 0
+            if total_inventory > 0:
+                type_percentage = (type_inventory / total_inventory) * 100
+            
+            milk_type_data.append({
+                'type': milk_type.capitalize(),
+                'quantity': type_inventory,
+                'percentage': type_percentage
+            })
+        
+        # Get today's transactions
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        todays_purchases = InventoryTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).filter(InventoryTransaction.transaction_date >= today_start
+        ).with_entities(db.func.sum(InventoryTransaction.quantity)).scalar() or 0
+        
+        todays_sales = MilkSaleTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).filter(MilkSaleTransaction.date >= today_start
+        ).with_entities(db.func.sum(MilkSaleTransaction.quantity)).scalar() or 0
+        
+        # Get suppliers for dropdown list
+        suppliers = User.query.filter(
+            User.role.in_([UserRole.MILK_SELLER, UserRole.BIKE_MILK_SELLER])
+        ).all()
+        
+        # Get buyers for dropdown list (can be milk buyers or end customers)
+        buyers = User.query.filter_by(role=UserRole.MILK_BUYER).all()
+        
+        # Calculate average prices for today's transactions
+        today_purchase_transactions = InventoryTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).filter(InventoryTransaction.transaction_date >= today_start).all()
+        
+        avg_purchase_price = 0
+        if today_purchase_transactions:
+            total_amount = sum(t.total_amount for t in today_purchase_transactions)
+            total_quantity = sum(t.quantity for t in today_purchase_transactions)
+            if total_quantity > 0:
+                avg_purchase_price = total_amount / total_quantity
+        
+        # Similarly handle potential errors for sale transactions
+        today_sale_transactions = []
+        avg_selling_price = 0
+        try:
+            today_sale_transactions = MilkSaleTransaction.query.filter_by(
+                dairy_holder_id=current_user.id
+            ).filter(MilkSaleTransaction.date >= today_start).all()
+            
+            if today_sale_transactions:
+                total_amount = sum(t.total_amount for t in today_sale_transactions)
+                total_quantity = sum(t.quantity for t in today_sale_transactions)
+                if total_quantity > 0:
+                    avg_selling_price = total_amount / total_quantity
+        except Exception as e:
+            print(f"Error calculating avg selling price: {str(e)}")
+            # Continue with empty today_sale_transactions and avg_selling_price = 0
+        
+        # Combine recent purchase and sale transactions for the timeline
+        recent_purchases = InventoryTransaction.query.filter_by(
+            dairy_holder_id=current_user.id
+        ).order_by(InventoryTransaction.transaction_date.desc()).limit(10).all()
+        
+        recent_sales = []
+        try:
+            recent_sales = MilkSaleTransaction.query.filter_by(
+                dairy_holder_id=current_user.id
+            ).order_by(MilkSaleTransaction.date.desc()).limit(10).all()
+        except Exception as e:
+            print(f"Error fetching recent sales: {str(e)}")
+            # Continue with empty recent_sales
+        
+        recent_transactions = []
+        
+        for purchase in recent_purchases:
+            recent_transactions.append({
+                'type': 'purchase',
+                'name': purchase.supplier_name,
+                'date': purchase.transaction_date,
+                'quantity': purchase.quantity,
+                'milk_type': purchase.milk_type,
+                'price_per_liter': purchase.price_per_liter,
+                'total_amount': purchase.total_amount,
+                'fat': purchase.fat_percentage,
+                'snf': purchase.snf_percentage,
+                'is_paid': purchase.is_paid
+            })
+        
+        for sale in recent_sales:
+            recent_transactions.append({
+                'type': 'sale',
+                'name': sale.buyer_name,
+                'date': sale.date,
+                'quantity': sale.quantity,
+                'milk_type': sale.milk_type,
+                'price_per_liter': sale.price_per_liter,
+                'total_amount': sale.total_amount,
+                'fat': sale.fat_percentage or 0,
+                'snf': sale.snf_percentage or 0,
+                'is_paid': sale.is_paid
+            })
+        
+        # Sort combined transactions by date (newest first)
+        recent_transactions.sort(key=lambda x: x['date'], reverse=True)
+        
+        return render_template('dairy_holder/milk_manager.html',
+                              total_inventory=total_inventory,
+                              milk_type_data=milk_type_data,
+                              todays_purchases=todays_purchases,
+                              todays_sales=todays_sales,
+                              suppliers=suppliers,
+                              buyers=buyers,
+                              avg_purchase_price=avg_purchase_price,
+                              avg_selling_price=avg_selling_price,
+                              recent_transactions=recent_transactions[:15])  # Limit to 15 most recent
+    except Exception as e:
+        flash(f"An error occurred while loading the Milk Manager: {str(e)}", "danger")
+        print(f"Error in milk_manager: {str(e)}")
+        return redirect(url_for('dairy_holder.dashboard')) 

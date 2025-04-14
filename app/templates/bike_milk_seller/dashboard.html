@@ -12,9 +12,23 @@
     </div>
 </div>
 
-<!-- Stats Summary Cards -->
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab" aria-controls="basic" aria-selected="true">Basic</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">Advanced</button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="dashboardTabsContent">
+    <!-- Basic Tab -->
+    <div class="tab-pane fade show active" id="basic" role="tabpanel" aria-labelledby="basic-tab">
+        <!-- Stats Summary Cards -->
 <div class="row">
-    <div class="col-md-3">
+            <div class="col-md-3">
         <div class="card mb-4 bg-primary text-white">
             <div class="card-body text-center">
                 <h5 class="card-title">Total Milk Delivered</h5>
@@ -24,7 +38,7 @@
         </div>
     </div>
     
-    <div class="col-md-3">
+            <div class="col-md-3">
         <div class="card mb-4 bg-success text-white">
             <div class="card-body text-center">
                 <h5 class="card-title">Total Earnings</h5>
@@ -34,7 +48,7 @@
         </div>
     </div>
     
-    <div class="col-md-3">
+            <div class="col-md-3">
         <div class="card mb-4 bg-warning text-dark">
             <div class="card-body text-center">
                 <h5 class="card-title">Pending Payment</h5>
@@ -43,162 +57,285 @@
             </div>
         </div>
     </div>
-    
-    <div class="col-md-3">
-        <div class="card mb-4 bg-info text-white">
-            <div class="card-body text-center">
-                <h5 class="card-title">Total Milk Received</h5>
-                <h2 class="display-4">{{ "%.2f"|format(total_milk_received) }}</h2>
-                <p class="mb-0">From Milk Sellers</p>
+            
+            <div class="col-md-3">
+                <div class="card mb-4 bg-info text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total Milk Received</h5>
+                        <h2 class="display-4">{{ "%.2f"|format(total_milk_received) }}</h2>
+                        <p class="mb-0">From Milk Sellers</p>
+                    </div>
+                </div>
             </div>
+</div>
+
+        <!-- Recent Deliveries Section (Basic) -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h5 class="mb-0">Recent Deliveries</h5>
+                <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Quantity (L)</th>
+                                <th>Total Amount (₹)</th>
+                                <th>Payment Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for delivery in deliveries %}
+                                <tr>
+                                    <td>{{ delivery.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ delivery.customer_name }}</td>
+                                    <td>{{ "%.1f"|format(delivery.quantity) }}</td>
+                                    <td>₹{{ "%.2f"|format(delivery.total_amount) }}</td>
+                                    <td>
+                                        {% if delivery.is_paid %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not delivery.is_paid %}
+                                            <form method="POST" action="{{ url_for('bike_milk_seller.update_payment', delivery_id=delivery.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check me-1"></i> Mark Paid
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No deliveries found</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions (Basic) -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <a href="{{ url_for('bike_milk_seller.customer_list') }}" class="btn btn-outline-primary w-100 py-3">
+                    <i class="fas fa-users fa-2x mb-2"></i><br>
+                    Manage Customers
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('bike_milk_seller.add_delivery') }}" class="btn btn-outline-success w-100 py-3">
+                    <i class="fas fa-truck fa-2x mb-2"></i><br>
+                    Add Delivery
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('bike_milk_seller.reports') }}" class="btn btn-outline-info w-100 py-3">
+                    <i class="fas fa-file-alt fa-2x mb-2"></i><br>
+                    View Reports
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Tab -->
+    <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
+        <!-- Main Feature Cards -->
+        <div class="row mb-4">
+            <!-- Deliveries Card -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-truck text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="card-title">Deliveries</h3>
+                        <p class="card-text">Manage your milk delivery transactions</p>
+                        <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-primary">View Deliveries</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Customers Card -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-users text-success" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="card-title">Customers</h3>
+                        <p class="card-text">View and manage your customers</p>
+                        <a href="{{ url_for('bike_milk_seller.customer_list') }}" class="btn btn-success">View Customers</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analytics Card -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-chart-line text-info" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="card-title">Analytics</h3>
+                        <p class="card-text">Advanced analytics and insights</p>
+                        <a href="{{ url_for('bike_milk_seller.analytics') }}" class="btn btn-info text-white">View Analytics</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quality Metrics Card -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-vial text-warning" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="card-title">Quality Metrics</h3>
+                        <p class="card-text">Track milk quality parameters</p>
+                        <a href="{{ url_for('bike_milk_seller.quality') }}" class="btn btn-warning">View Quality</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Milk Purchases Card -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-shopping-cart text-danger" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="card-title">Milk Purchases</h3>
+                        <p class="card-text">Track milk bought from suppliers</p>
+                        <a href="{{ url_for('bike_milk_seller.milk_purchases') }}" class="btn btn-danger">View Purchases</a>
         </div>
     </div>
 </div>
 
-<!-- Main Feature Cards -->
-<div class="row mb-4">
-    <!-- Deliveries Card -->
-    <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-truck text-primary" style="font-size: 3rem;"></i>
+            <!-- Reports Card -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-file-alt text-secondary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="card-title">Reports</h3>
+                        <p class="card-text">Generate and view reports</p>
+                        <a href="{{ url_for('bike_milk_seller.reports') }}" class="btn btn-secondary">View Reports</a>
+                    </div>
                 </div>
-                <h3 class="card-title">Deliveries</h3>
-                <p class="card-text">Manage your milk delivery transactions</p>
-                <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-primary">View Deliveries</a>
             </div>
         </div>
-    </div>
-    
-    <!-- Customers Card -->
-    <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-users text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h3 class="card-title">Customers</h3>
-                <p class="card-text">View and manage your customers</p>
-                <a href="{{ url_for('bike_milk_seller.customer_list') }}" class="btn btn-success">View Customers</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Analytics Card -->
-    <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-chart-line text-info" style="font-size: 3rem;"></i>
-                </div>
-                <h3 class="card-title">Analytics</h3>
-                <p class="card-text">Advanced analytics and insights</p>
-                <a href="{{ url_for('bike_milk_seller.analytics') }}" class="btn btn-info text-white">View Analytics</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Quality Metrics Card -->
-    <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-vial text-warning" style="font-size: 3rem;"></i>
-                </div>
-                <h3 class="card-title">Quality Metrics</h3>
-                <p class="card-text">Track milk quality parameters</p>
-                <a href="{{ url_for('bike_milk_seller.quality') }}" class="btn btn-warning">View Quality</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Milk Purchases Card -->
-    <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-shopping-cart text-danger" style="font-size: 3rem;"></i>
-                </div>
-                <h3 class="card-title">Milk Purchases</h3>
-                <p class="card-text">Track milk bought from suppliers</p>
-                <a href="{{ url_for('bike_milk_seller.milk_purchases') }}" class="btn btn-danger">View Purchases</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Reports Card -->
-    <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-file-alt text-secondary" style="font-size: 3rem;"></i>
-                </div>
-                <h3 class="card-title">Reports</h3>
-                <p class="card-text">Generate and view reports</p>
-                <a href="{{ url_for('bike_milk_seller.reports') }}" class="btn btn-secondary">View Reports</a>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Recent Deliveries Section -->
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center bg-light">
-        <h5 class="mb-0">Recent Deliveries</h5>
-        <a href="{{ url_for('bike_milk_seller.deliveries') }}" class="btn btn-sm btn-outline-primary">View All</a>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Customer</th>
-                        <th>Quantity (L)</th>
-                        <th>Total Amount (₹)</th>
-                        <th>Payment Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for delivery in deliveries %}
-                        <tr>
-                            <td>{{ delivery.date.strftime('%d-%m-%Y') }}</td>
-                            <td>{{ delivery.customer_name }}</td>
-                            <td>{{ "%.1f"|format(delivery.quantity) }}</td>
-                            <td>₹{{ "%.2f"|format(delivery.total_amount) }}</td>
-                            <td>
-                                {% if delivery.is_paid %}
-                                    <span class="badge bg-success">Paid</span>
-                                {% else %}
-                                    <span class="badge bg-warning text-dark">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if not delivery.is_paid %}
-                                    <form method="POST" action="{{ url_for('bike_milk_seller.update_payment', delivery_id=delivery.id) }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-sm btn-success">
-                                            <i class="fas fa-check me-1"></i> Mark Paid
-                                        </button>
-                                    </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center">No deliveries found</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Charts Section -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Monthly Delivery Trends</h5>
+            </div>
+            <div class="card-body">
+                        <canvas id="deliveryTrendsChart" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Customer Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="customerDistributionChart" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Add any dashboard-specific JavaScript here
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only initialize charts if we're on the advanced tab
+        const advancedTab = document.getElementById('advanced-tab');
+        
+        const deliveryTrendsCtx = document.getElementById('deliveryTrendsChart');
+        const customerDistributionCtx = document.getElementById('customerDistributionChart');
+        
+        if (deliveryTrendsCtx && customerDistributionCtx) {
+            // Delivery Trends Chart
+            const deliveryTrendsChart = new Chart(deliveryTrendsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Delivery Volume (L)',
+                        data: [65, 59, 80, 81, 56, 55],
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Volume (L)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Customer Distribution Chart
+            const customerDistributionChart = new Chart(customerDistributionCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Residential', 'Commercial', 'Institutional'],
+                    datasets: [{
+                        data: [60, 25, 15],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.5)',
+                            'rgba(54, 162, 235, 0.5)',
+                            'rgba(255, 206, 86, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            
+            // Show charts when advanced tab is clicked
+            advancedTab.addEventListener('shown.bs.tab', function (e) {
+                deliveryTrendsChart.update();
+                customerDistributionChart.update();
+            });
+        }
+    });
 </script>
 {% endblock %} 

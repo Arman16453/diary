@@ -171,6 +171,9 @@
                                             <i class="fas fa-check"></i>
                                         </a>
                                         {% endif %}
+                                        <a href="{{ url_for('dairy_holder.print_receipt', inventory_id=item.id) }}" class="btn btn-outline-info" target="_blank">
+                                            <i class="fas fa-print"></i>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

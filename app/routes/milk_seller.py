@@ -1,10 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import login_required, current_user, logout_user
 from app import db
 from app.models.transactions import MilkTransaction
 from app.models.user import UserRole, User
 from datetime import datetime, timedelta
 from functools import wraps
+from fpdf import FPDF
+import io
 
 milk_seller = Blueprint('milk_seller', __name__)
 
@@ -493,4 +495,208 @@ def mark_paid(transaction_id):
     db.session.commit()
     
     flash('Transaction marked as paid successfully!', 'success')
-    return redirect(url_for('milk_seller.transactions')) 
+    return redirect(url_for('milk_seller.transactions'))
+
+@milk_seller.route('/print_receipt/<int:transaction_id>')
+@role_required
+def print_receipt(transaction_id):
+    # Get the transaction details
+    transaction = MilkTransaction.query.get_or_404(transaction_id)
+    
+    # Verify that this transaction belongs to the current user
+    if transaction.seller_id != current_user.id:
+        flash('You do not have permission to access this receipt.', 'danger')
+        return redirect(url_for('milk_seller.transactions'))
+    
+    # Get buyer information
+    buyer = None
+    if transaction.buyer_id:
+        if transaction.buyer_type == 'dairy_holder':
+            buyer = User.query.filter_by(id=transaction.buyer_id, role=UserRole.DAIRY_HOLDER).first()
+        elif transaction.buyer_type == 'bike_milk_seller':
+            buyer = User.query.filter_by(id=transaction.buyer_id, role=UserRole.BIKE_MILK_SELLER).first()
+    
+    # Create the PDF receipt
+    pdf = FPDF(format='A6')  # A6 is a good size for a receipt
+    pdf.add_page()
+    
+    # Set up fonts
+    pdf.set_font('Arial', 'B', 12)
+    
+    # Header
+    pdf.cell(0, 10, 'SMART DAIRY - MILK RECEIPT', 0, 1, 'C')
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(0, 5, f'Receipt Date: {datetime.now().strftime("%d-%m-%Y %H:%M")}', 0, 1, 'C')
+    pdf.cell(0, 5, f'Transaction Date: {transaction.date.strftime("%d-%m-%Y")}', 0, 1, 'C')
+    pdf.cell(0, 5, f'Transaction ID: {transaction.id}', 0, 1, 'C')
+    pdf.line(10, 30, 140, 30)
+    
+    # Seller and Buyer Info
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'TRANSACTION DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(40, 5, 'Seller:', 0, 0, 'L')
+    pdf.cell(0, 5, current_user.username, 0, 1, 'L')
+    
+    if buyer:
+        pdf.cell(40, 5, 'Buyer:', 0, 0, 'L')
+        pdf.cell(0, 5, buyer.username, 0, 1, 'L')
+        pdf.cell(40, 5, 'Buyer Type:', 0, 0, 'L')
+        pdf.cell(0, 5, transaction.buyer_type.replace('_', ' ').title(), 0, 1, 'L')
+    
+    pdf.line(10, 55, 140, 55)
+    
+    # Transaction Details
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'MILK DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(60, 5, 'Quantity:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{transaction.quantity:.2f} L', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Price per Liter:', 0, 0, 'L')
+    pdf.cell(0, 5, f'Rs. {transaction.price_per_liter:.2f}', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Fat Percentage:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{transaction.fat_percentage:.1f}%', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'SNF Percentage:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{transaction.snf_percentage:.1f}%', 0, 1, 'L')
+    
+    pdf.line(10, 85, 140, 85)
+    
+    # Payment Details
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'PAYMENT DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(60, 5, 'Total Amount:', 0, 0, 'L')
+    pdf.cell(0, 5, f'Rs. {transaction.total_amount:.2f}', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Payment Status:', 0, 0, 'L')
+    pdf.cell(0, 5, 'PAID' if transaction.is_paid else 'PENDING', 0, 1, 'L')
+    
+    if transaction.is_paid and transaction.payment_date:
+        pdf.cell(60, 5, 'Payment Date:', 0, 0, 'L')
+        pdf.cell(0, 5, transaction.payment_date.strftime('%d-%m-%Y'), 0, 1, 'L')
+    
+    # Footer
+    pdf.line(10, 110, 140, 110)
+    pdf.set_font('Arial', 'I', 6)
+    pdf.cell(0, 10, 'This is a computer generated receipt and does not require signature.', 0, 1, 'C')
+    pdf.cell(0, 5, 'Smart Dairy & Milk Tracking System', 0, 1, 'C')
+    
+    # Generate PDF content
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    pdf_output.seek(0)
+    
+    # Return the PDF as a response
+    return Response(
+        pdf_output,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=milk_receipt_{transaction.id}.pdf"}
+    )
+
+@milk_seller.route('/preview_receipt/<int:transaction_id>')
+@role_required
+def preview_receipt(transaction_id):
+    # Get the transaction details
+    transaction = MilkTransaction.query.get_or_404(transaction_id)
+    
+    # Verify that this transaction belongs to the current user
+    if transaction.seller_id != current_user.id:
+        flash('You do not have permission to access this receipt.', 'danger')
+        return redirect(url_for('milk_seller.transactions'))
+    
+    # Get buyer information
+    buyer = None
+    if transaction.buyer_id:
+        if transaction.buyer_type == 'dairy_holder':
+            buyer = User.query.filter_by(id=transaction.buyer_id, role=UserRole.DAIRY_HOLDER).first()
+        elif transaction.buyer_type == 'bike_milk_seller':
+            buyer = User.query.filter_by(id=transaction.buyer_id, role=UserRole.BIKE_MILK_SELLER).first()
+    
+    # Create the PDF receipt
+    pdf = FPDF(format='A6')  # A6 is a good size for a receipt
+    pdf.add_page()
+    
+    # Set up fonts
+    pdf.set_font('Arial', 'B', 12)
+    
+    # Header
+    pdf.cell(0, 10, 'SMART DAIRY - MILK RECEIPT', 0, 1, 'C')
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(0, 5, f'Receipt Date: {datetime.now().strftime("%d-%m-%Y %H:%M")}', 0, 1, 'C')
+    pdf.cell(0, 5, f'Transaction Date: {transaction.date.strftime("%d-%m-%Y")}', 0, 1, 'C')
+    pdf.cell(0, 5, f'Transaction ID: {transaction.id}', 0, 1, 'C')
+    pdf.line(10, 30, 140, 30)
+    
+    # Seller and Buyer Info
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'TRANSACTION DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(40, 5, 'Seller:', 0, 0, 'L')
+    pdf.cell(0, 5, current_user.username, 0, 1, 'L')
+    
+    if buyer:
+        pdf.cell(40, 5, 'Buyer:', 0, 0, 'L')
+        pdf.cell(0, 5, buyer.username, 0, 1, 'L')
+        pdf.cell(40, 5, 'Buyer Type:', 0, 0, 'L')
+        pdf.cell(0, 5, transaction.buyer_type.replace('_', ' ').title(), 0, 1, 'L')
+    
+    pdf.line(10, 55, 140, 55)
+    
+    # Transaction Details
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'MILK DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(60, 5, 'Quantity:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{transaction.quantity:.2f} L', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Price per Liter:', 0, 0, 'L')
+    pdf.cell(0, 5, f'Rs. {transaction.price_per_liter:.2f}', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Fat Percentage:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{transaction.fat_percentage:.1f}%', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'SNF Percentage:', 0, 0, 'L')
+    pdf.cell(0, 5, f'{transaction.snf_percentage:.1f}%', 0, 1, 'L')
+    
+    pdf.line(10, 85, 140, 85)
+    
+    # Payment Details
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'PAYMENT DETAILS', 0, 1, 'L')
+    
+    pdf.set_font('Arial', '', 8)
+    pdf.cell(60, 5, 'Total Amount:', 0, 0, 'L')
+    pdf.cell(0, 5, f'Rs. {transaction.total_amount:.2f}', 0, 1, 'L')
+    
+    pdf.cell(60, 5, 'Payment Status:', 0, 0, 'L')
+    pdf.cell(0, 5, 'PAID' if transaction.is_paid else 'PENDING', 0, 1, 'L')
+    
+    if transaction.is_paid and transaction.payment_date:
+        pdf.cell(60, 5, 'Payment Date:', 0, 0, 'L')
+        pdf.cell(0, 5, transaction.payment_date.strftime('%d-%m-%Y'), 0, 1, 'L')
+    
+    # Footer
+    pdf.line(10, 110, 140, 110)
+    pdf.set_font('Arial', 'I', 6)
+    pdf.cell(0, 10, 'This is a computer generated receipt and does not require signature.', 0, 1, 'C')
+    pdf.cell(0, 5, 'Smart Dairy & Milk Tracking System', 0, 1, 'C')
+    
+    # Generate PDF content and output with inline disposition (for preview)
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    pdf_output.seek(0)
+    
+    # Return the PDF as a response with inline disposition (for preview)
+    return Response(
+        pdf_output,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=milk_receipt_{transaction.id}.pdf"}
+    ) 

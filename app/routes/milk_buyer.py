@@ -1,11 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response, make_response
 from flask_login import login_required, current_user, logout_user
 from app import db
-from app.models.user import UserRole
+from app.models.user import UserRole, User
 from app.models.transactions import PurchaseTransaction, Inventory
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
 from functools import wraps
+from fpdf import FPDF
+import io
 
 milk_buyer = Blueprint('milk_buyer', __name__)
 
@@ -579,4 +581,216 @@ def get_inventory_item():
         'expiry_date': expiry_date,
         'restock_level': inventory_item.restock_level,
         'notes': inventory_item.notes or ''
-    }) 
+    })
+
+@milk_buyer.route('/print_receipt/<int:purchase_id>')
+@role_required
+def print_receipt(purchase_id):
+    purchase = PurchaseTransaction.query.get_or_404(purchase_id)
+    
+    # Verify ownership
+    if purchase.buyer_id != current_user.id:
+        flash('You do not have permission to view this receipt.', 'danger')
+        return redirect(url_for('milk_buyer.purchases'))
+    
+    # Get buyer info
+    buyer = User.query.get(current_user.id)
+    
+    # Create PDF
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Set up the PDF
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(190, 10, 'Milk Purchase Receipt', 0, 1, 'C')
+    pdf.line(10, 22, 200, 22)
+    
+    # Receipt header
+    pdf.set_font('Arial', '', 12)
+    pdf.cell(190, 10, f'Receipt No: P{purchase.id}', 0, 1)
+    pdf.cell(190, 10, f'Date: {purchase.date.strftime("%d/%m/%Y %I:%M %p")}', 0, 1)
+    
+    # Buyer and Supplier Information
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(95, 10, 'Buyer Information:', 0, 0)
+    pdf.cell(95, 10, 'Supplier Information:', 0, 1)
+    
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 7, f'Name: {buyer.name}', 0, 0)
+    pdf.cell(95, 7, f'Name: {purchase.supplier_name}', 0, 1)
+    
+    pdf.cell(95, 7, f'Contact: {buyer.phone or "N/A"}', 0, 0)
+    pdf.cell(95, 7, f'Source: {purchase.source_location or "N/A"}', 0, 1)
+    
+    pdf.ln(5)
+    
+    # Milk Details
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Milk Details:', 0, 1)
+    pdf.ln(1)
+    
+    # Table header
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(47, 10, 'Milk Type', 1, 0, 'C')
+    pdf.cell(47, 10, 'Quantity (L)', 1, 0, 'C')
+    pdf.cell(47, 10, 'Price per Liter', 1, 0, 'C')
+    pdf.cell(47, 10, 'Total Amount', 1, 1, 'C')
+    
+    # Table data
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(47, 10, purchase.milk_type, 1, 0, 'C')
+    pdf.cell(47, 10, f'{purchase.quantity:.2f}', 1, 0, 'C')
+    pdf.cell(47, 10, f'Rs. {purchase.price_per_liter:.2f}', 1, 0, 'C')
+    pdf.cell(47, 10, f'Rs. {purchase.total_amount:.2f}', 1, 1, 'C')
+    
+    pdf.ln(5)
+    
+    # Quality metrics
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Quality Metrics:', 0, 1)
+    
+    pdf.ln(1)
+    
+    # Quality table header
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(60, 10, 'Fat Percentage', 1, 0, 'C')
+    pdf.cell(60, 10, 'SNF Percentage', 1, 0, 'C')
+    pdf.cell(60, 10, 'Quality Grade', 1, 1, 'C')
+    
+    # Quality table data
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(60, 10, f'{purchase.fat_percentage:.2f}%', 1, 0, 'C')
+    pdf.cell(60, 10, f'{purchase.snf_percentage:.2f}%', 1, 0, 'C')
+    pdf.cell(60, 10, purchase.quality_grade or 'N/A', 1, 1, 'C')
+    
+    pdf.ln(5)
+    
+    # Payment details
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Payment Details:', 0, 1)
+    
+    pdf.set_font('Arial', '', 10)
+    payment_status = "PAID" if purchase.is_paid else "PENDING"
+    payment_date = purchase.payment_date.strftime("%d/%m/%Y") if purchase.is_paid and purchase.payment_date else "N/A"
+    
+    pdf.cell(95, 7, f'Payment Status: {payment_status}', 0, 0)
+    pdf.cell(95, 7, f'Payment Date: {payment_date}', 0, 1)
+    
+    # Footer
+    pdf.ln(10)
+    pdf.set_font('Arial', 'I', 8)
+    pdf.cell(0, 10, 'This is a computer-generated receipt.', 0, 1, 'C')
+    pdf.cell(0, 10, f'Generated on {datetime.now().strftime("%d/%m/%Y %I:%M %p")}', 0, 1, 'C')
+    
+    # Output PDF as response
+    response = make_response(pdf.output(dest='S').encode('latin1'))
+    response.headers.set('Content-Disposition', f'attachment; filename=purchase_receipt_{purchase.id}.pdf')
+    response.headers.set('Content-Type', 'application/pdf')
+    
+    return response
+
+@milk_buyer.route('/preview_receipt/<int:purchase_id>')
+@role_required
+def preview_receipt(purchase_id):
+    purchase = PurchaseTransaction.query.get_or_404(purchase_id)
+    
+    # Verify ownership
+    if purchase.buyer_id != current_user.id:
+        flash('You do not have permission to view this receipt.', 'danger')
+        return redirect(url_for('milk_buyer.purchases'))
+    
+    # Get buyer info
+    buyer = User.query.get(current_user.id)
+    
+    # Create PDF
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Set up the PDF
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(190, 10, 'Milk Purchase Receipt', 0, 1, 'C')
+    pdf.line(10, 22, 200, 22)
+    
+    # Receipt header
+    pdf.set_font('Arial', '', 12)
+    pdf.cell(190, 10, f'Receipt No: P{purchase.id}', 0, 1)
+    pdf.cell(190, 10, f'Date: {purchase.date.strftime("%d/%m/%Y %I:%M %p")}', 0, 1)
+    
+    # Buyer and Supplier Information
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(95, 10, 'Buyer Information:', 0, 0)
+    pdf.cell(95, 10, 'Supplier Information:', 0, 1)
+    
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 7, f'Name: {buyer.name}', 0, 0)
+    pdf.cell(95, 7, f'Name: {purchase.supplier_name}', 0, 1)
+    
+    pdf.cell(95, 7, f'Contact: {buyer.phone or "N/A"}', 0, 0)
+    pdf.cell(95, 7, f'Source: {purchase.source_location or "N/A"}', 0, 1)
+    
+    pdf.ln(5)
+    
+    # Milk Details
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Milk Details:', 0, 1)
+    pdf.ln(1)
+    
+    # Table header
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(47, 10, 'Milk Type', 1, 0, 'C')
+    pdf.cell(47, 10, 'Quantity (L)', 1, 0, 'C')
+    pdf.cell(47, 10, 'Price per Liter', 1, 0, 'C')
+    pdf.cell(47, 10, 'Total Amount', 1, 1, 'C')
+    
+    # Table data
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(47, 10, purchase.milk_type, 1, 0, 'C')
+    pdf.cell(47, 10, f'{purchase.quantity:.2f}', 1, 0, 'C')
+    pdf.cell(47, 10, f'Rs. {purchase.price_per_liter:.2f}', 1, 0, 'C')
+    pdf.cell(47, 10, f'Rs. {purchase.total_amount:.2f}', 1, 1, 'C')
+    
+    pdf.ln(5)
+    
+    # Quality metrics
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Quality Metrics:', 0, 1)
+    
+    pdf.ln(1)
+    
+    # Quality table header
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(60, 10, 'Fat Percentage', 1, 0, 'C')
+    pdf.cell(60, 10, 'SNF Percentage', 1, 0, 'C')
+    pdf.cell(60, 10, 'Quality Grade', 1, 1, 'C')
+    
+    # Quality table data
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(60, 10, f'{purchase.fat_percentage:.2f}%', 1, 0, 'C')
+    pdf.cell(60, 10, f'{purchase.snf_percentage:.2f}%', 1, 0, 'C')
+    pdf.cell(60, 10, purchase.quality_grade or 'N/A', 1, 1, 'C')
+    
+    pdf.ln(5)
+    
+    # Payment details
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Payment Details:', 0, 1)
+    
+    pdf.set_font('Arial', '', 10)
+    payment_status = "PAID" if purchase.is_paid else "PENDING"
+    payment_date = purchase.payment_date.strftime("%d/%m/%Y") if purchase.is_paid and purchase.payment_date else "N/A"
+    
+    pdf.cell(95, 7, f'Payment Status: {payment_status}', 0, 0)
+    pdf.cell(95, 7, f'Payment Date: {payment_date}', 0, 1)
+    
+    # Footer
+    pdf.ln(10)
+    pdf.set_font('Arial', 'I', 8)
+    pdf.cell(0, 10, 'This is a computer-generated receipt.', 0, 1, 'C')
+    pdf.cell(0, 10, f'Generated on {datetime.now().strftime("%d/%m/%Y %I:%M %p")}', 0, 1, 'C')
+    
+    # Output PDF as response with inline disposition (for preview)
+    response = make_response(pdf.output(dest='S').encode('latin1'))
+    response.headers.set('Content-Disposition', f'inline; filename=purchase_receipt_{purchase.id}.pdf')
+    response.headers.set('Content-Type', 'application/pdf')
+    
+    return response 

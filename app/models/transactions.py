@@ -160,4 +160,29 @@ class InventoryTransaction(db.Model):
     
     def calculate_total(self):
         self.total_amount = self.quantity * self.price_per_liter
-        return self.total_amount 
+        return self.total_amount
+
+class MilkSaleTransaction(db.Model):
+    __tablename__ = 'milk_sale_transaction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    dairy_holder_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    buyer_name = db.Column(db.String(100), nullable=False)
+    milk_type = db.Column(db.String(50), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    price_per_liter = db.Column(db.Float, nullable=False)
+    total_amount = db.Column(db.Float, nullable=False)
+    fat_percentage = db.Column(db.Float, nullable=True)
+    snf_percentage = db.Column(db.Float, nullable=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    is_paid = db.Column(db.Boolean, default=False)
+    payment_date = db.Column(db.DateTime, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    
+    # Define the relationship with User (dairy holder)
+    dairy_holder = db.relationship('User', foreign_keys=[dairy_holder_id])
+    buyer = db.relationship('User', foreign_keys=[buyer_id])
+    
+    def __repr__(self):
+        return f'<MilkSaleTransaction {self.id} by {self.dairy_holder_id}>' 

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response
 from flask_login import login_required, current_user, logout_user
 from app import db
 from app.models.transactions import DeliveryTransaction, MilkTransaction
@@ -7,6 +7,7 @@ from app.models.customer import Customer
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_, func
 from functools import wraps
+from fpdf import FPDF
 
 bike_milk_seller = Blueprint('bike_milk_seller', __name__)
 
@@ -307,7 +308,7 @@ def reports():
         
         milk_purchases = MilkTransaction.query.filter_by(buyer_id=current_user.id, buyer_type='bike_milk_seller') \
                                         .order_by(MilkTransaction.date.desc()) \
-                                        .all()
+    .all()
     
     # Prepare report data for deliveries
     total_delivered = sum(d.quantity for d in deliveries)
@@ -671,4 +672,186 @@ def delete_customer(customer_id):
     db.session.commit()
     
     flash('Customer and associated deliveries deleted successfully!', 'success')
-    return redirect(url_for('bike_milk_seller.customer_list')) 
+    return redirect(url_for('bike_milk_seller.customer_list'))
+
+@bike_milk_seller.route('/print_receipt/<int:delivery_id>')
+@role_required
+def print_receipt(delivery_id):
+    delivery = DeliveryTransaction.query.get_or_404(delivery_id)
+    
+    # Verify ownership
+    if delivery.bike_seller_id != current_user.id:
+        flash('You do not have permission to view this receipt.', 'danger')
+        return redirect(url_for('bike_milk_seller.deliveries'))
+    
+    # Get bike seller info
+    bike_seller = User.query.get(current_user.id)
+    
+    # Create PDF
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Set up the PDF
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(190, 10, 'Milk Delivery Receipt', 0, 1, 'C')
+    pdf.line(10, 22, 200, 22)
+    
+    # Receipt header
+    pdf.set_font('Arial', '', 12)
+    pdf.cell(190, 10, f'Receipt No: D{delivery.id}', 0, 1)
+    pdf.cell(190, 10, f'Date: {delivery.date.strftime("%d/%m/%Y %I:%M %p")}', 0, 1)
+    
+    # Seller and Customer Information
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(95, 10, 'Seller Information:', 0, 0)
+    pdf.cell(95, 10, 'Customer Information:', 0, 1)
+    
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 7, f'Name: {bike_seller.name}', 0, 0)
+    pdf.cell(95, 7, f'Name: {delivery.customer_name}', 0, 1)
+    
+    pdf.cell(95, 7, f'Contact: {bike_seller.phone or "N/A"}', 0, 0)
+    pdf.cell(95, 7, f'Address: {delivery.customer_address or "N/A"}', 0, 1)
+    
+    pdf.ln(5)
+    
+    # Milk Details
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Delivery Details:', 0, 1)
+    pdf.ln(1)
+    
+    # Table header
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(95, 10, 'Quantity (L)', 1, 0, 'C')
+    pdf.cell(95, 10, 'Price per Liter (Rs.)', 1, 1, 'C')
+    
+    # Table data
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 10, f'{delivery.quantity:.2f}', 1, 0, 'C')
+    pdf.cell(95, 10, f'Rs. {delivery.price_per_liter:.2f}', 1, 1, 'C')
+    
+    pdf.ln(5)
+    
+    # Payment details
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Payment Details:', 0, 1)
+    
+    # Payment table header
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(95, 10, 'Total Amount (Rs.)', 1, 0, 'C')
+    pdf.cell(95, 10, 'Payment Status', 1, 1, 'C')
+    
+    # Payment table data
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 10, f'Rs. {delivery.total_amount:.2f}', 1, 0, 'C')
+    payment_status = "PAID" if delivery.is_paid else "PENDING"
+    pdf.cell(95, 10, payment_status, 1, 1, 'C')
+    
+    if delivery.is_paid and delivery.payment_date:
+        pdf.ln(5)
+        pdf.set_font('Arial', '', 10)
+        pdf.cell(190, 7, f'Payment Date: {delivery.payment_date.strftime("%d/%m/%Y")}', 0, 1)
+    
+    # Footer
+    pdf.ln(10)
+    pdf.set_font('Arial', 'I', 8)
+    pdf.cell(0, 10, 'This is a computer-generated receipt.', 0, 1, 'C')
+    pdf.cell(0, 10, f'Generated on {datetime.now().strftime("%d/%m/%Y %I:%M %p")}', 0, 1, 'C')
+    
+    # Output PDF as response
+    response = make_response(pdf.output(dest='S').encode('latin1'))
+    response.headers.set('Content-Disposition', f'attachment; filename=delivery_receipt_{delivery.id}.pdf')
+    response.headers.set('Content-Type', 'application/pdf')
+    
+    return response
+
+@bike_milk_seller.route('/preview_receipt/<int:delivery_id>')
+@role_required
+def preview_receipt(delivery_id):
+    delivery = DeliveryTransaction.query.get_or_404(delivery_id)
+    
+    # Verify ownership
+    if delivery.bike_seller_id != current_user.id:
+        flash('You do not have permission to view this receipt.', 'danger')
+        return redirect(url_for('bike_milk_seller.deliveries'))
+    
+    # Get bike seller info
+    bike_seller = User.query.get(current_user.id)
+    
+    # Create PDF
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Set up the PDF
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(190, 10, 'Milk Delivery Receipt', 0, 1, 'C')
+    pdf.line(10, 22, 200, 22)
+    
+    # Receipt header
+    pdf.set_font('Arial', '', 12)
+    pdf.cell(190, 10, f'Receipt No: D{delivery.id}', 0, 1)
+    pdf.cell(190, 10, f'Date: {delivery.date.strftime("%d/%m/%Y %I:%M %p")}', 0, 1)
+    
+    # Seller and Customer Information
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(95, 10, 'Seller Information:', 0, 0)
+    pdf.cell(95, 10, 'Customer Information:', 0, 1)
+    
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 7, f'Name: {bike_seller.name}', 0, 0)
+    pdf.cell(95, 7, f'Name: {delivery.customer_name}', 0, 1)
+    
+    pdf.cell(95, 7, f'Contact: {bike_seller.phone or "N/A"}', 0, 0)
+    pdf.cell(95, 7, f'Address: {delivery.customer_address or "N/A"}', 0, 1)
+    
+    pdf.ln(5)
+    
+    # Milk Details
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Delivery Details:', 0, 1)
+    pdf.ln(1)
+    
+    # Table header
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(95, 10, 'Quantity (L)', 1, 0, 'C')
+    pdf.cell(95, 10, 'Price per Liter (Rs.)', 1, 1, 'C')
+    
+    # Table data
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 10, f'{delivery.quantity:.2f}', 1, 0, 'C')
+    pdf.cell(95, 10, f'Rs. {delivery.price_per_liter:.2f}', 1, 1, 'C')
+    
+    pdf.ln(5)
+    
+    # Payment details
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(190, 10, 'Payment Details:', 0, 1)
+    
+    # Payment table header
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(95, 10, 'Total Amount (Rs.)', 1, 0, 'C')
+    pdf.cell(95, 10, 'Payment Status', 1, 1, 'C')
+    
+    # Payment table data
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(95, 10, f'Rs. {delivery.total_amount:.2f}', 1, 0, 'C')
+    payment_status = "PAID" if delivery.is_paid else "PENDING"
+    pdf.cell(95, 10, payment_status, 1, 1, 'C')
+    
+    if delivery.is_paid and delivery.payment_date:
+        pdf.ln(5)
+        pdf.set_font('Arial', '', 10)
+        pdf.cell(190, 7, f'Payment Date: {delivery.payment_date.strftime("%d/%m/%Y")}', 0, 1)
+    
+    # Footer
+    pdf.ln(10)
+    pdf.set_font('Arial', 'I', 8)
+    pdf.cell(0, 10, 'This is a computer-generated receipt.', 0, 1, 'C')
+    pdf.cell(0, 10, f'Generated on {datetime.now().strftime("%d/%m/%Y %I:%M %p")}', 0, 1, 'C')
+    
+    # Output PDF as response with inline disposition (for preview)
+    response = make_response(pdf.output(dest='S').encode('latin1'))
+    response.headers.set('Content-Disposition', f'inline; filename=delivery_receipt_{delivery.id}.pdf')
+    response.headers.set('Content-Type', 'application/pdf')
+    
+    return response 

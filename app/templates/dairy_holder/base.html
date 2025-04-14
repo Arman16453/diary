@@ -162,6 +162,16 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dairy_holder.milk_transactions' %}active{% endif %}" href="{{ url_for('dairy_holder.milk_transactions') }}">
+                            <i class="fas fa-exchange-alt"></i> Milk Transactions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dairy_holder.milk_manager' %}active{% endif %}" href="{{ url_for('dairy_holder.milk_manager') }}">
+                            <i class="fas fa-tint"></i> Milk Manager
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'dairy_holder.suppliers' %}active{% endif %}" href="{{ url_for('dairy_holder.suppliers') }}">
                             <i class="fas fa-users"></i> Suppliers
                         </a>

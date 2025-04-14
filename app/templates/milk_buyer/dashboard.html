@@ -9,65 +9,77 @@
         </a>
     </div>
 
-    <div class="row mb-4">
-        <!-- Statistics Cards -->
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Total Purchased</h5>
-                    <h2 class="mb-0">{{ "%.1f"|format(total_purchased) }} L</h2>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{{ url_for('milk_buyer.purchases') }}" class="text-white">View Details</a>
-                    <i class="fas fa-angle-right text-white"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-success text-white h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Total Spent</h5>
-                    <h2 class="mb-0">₹{{ "%.2f"|format(total_spent) }}</h2>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{{ url_for('milk_buyer.reports') }}" class="text-white">View Reports</a>
-                    <i class="fas fa-angle-right text-white"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-warning text-dark h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Pending Payment</h5>
-                    <h2 class="mb-0">₹{{ "%.2f"|format(pending_payments) }}</h2>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{{ url_for('milk_buyer.purchases') }}?payment_status=pending" class="text-dark">View Pending</a>
-                    <i class="fas fa-angle-right text-dark"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-info text-white h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Suppliers</h5>
-                    <h2 class="mb-0"><i class="fas fa-users"></i></h2>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a href="{{ url_for('milk_buyer.suppliers') }}" class="text-white">View Suppliers</a>
-                    <i class="fas fa-angle-right text-white"></i>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab" aria-controls="basic" aria-selected="true">Basic</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">Advanced</button>
+        </li>
+    </ul>
 
-    <div class="row">
-        <!-- Recent Purchases -->
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm">
+    <!-- Tab Content -->
+    <div class="tab-content" id="dashboardTabsContent">
+        <!-- Basic Tab -->
+        <div class="tab-pane fade show active" id="basic" role="tabpanel" aria-labelledby="basic-tab">
+            <div class="row mb-4">
+                <!-- Statistics Cards -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Purchased</h5>
+                            <h2 class="mb-0">{{ "%.1f"|format(total_purchased) }} L</h2>
+                        </div>
+                        <div class="card-footer d-flex align-items-center justify-content-between">
+                            <a href="{{ url_for('milk_buyer.purchases') }}" class="text-white">View Details</a>
+                            <i class="fas fa-angle-right text-white"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Spent</h5>
+                            <h2 class="mb-0">₹{{ "%.2f"|format(total_spent) }}</h2>
+                        </div>
+                        <div class="card-footer d-flex align-items-center justify-content-between">
+                            <a href="{{ url_for('milk_buyer.reports') }}" class="text-white">View Reports</a>
+                            <i class="fas fa-angle-right text-white"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-warning text-dark h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Payment</h5>
+                            <h2 class="mb-0">₹{{ "%.2f"|format(pending_payments) }}</h2>
+                        </div>
+                        <div class="card-footer d-flex align-items-center justify-content-between">
+                            <a href="{{ url_for('milk_buyer.purchases') }}?payment_status=pending" class="text-dark">View Pending</a>
+                            <i class="fas fa-angle-right text-dark"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-info text-white h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Suppliers</h5>
+                            <h2 class="mb-0"><i class="fas fa-users"></i></h2>
+                        </div>
+                        <div class="card-footer d-flex align-items-center justify-content-between">
+                            <a href="{{ url_for('milk_buyer.suppliers') }}" class="text-white">View Suppliers</a>
+                            <i class="fas fa-angle-right text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Purchases (Basic) -->
+            <div class="card shadow-sm mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center bg-light">
                     <h5 class="mb-0">Recent Purchases</h5>
                     <a href="{{ url_for('milk_buyer.purchases') }}" class="btn btn-sm btn-outline-primary">View All</a>
@@ -125,43 +137,88 @@
             </div>
         </div>
 
-        <!-- Quick Links -->
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Quick Actions</h5>
+        <!-- Advanced Tab -->
+        <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
+            <div class="row mb-4">
+                <!-- Analytics Widgets -->
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Monthly Purchase Trends</h5>
+                        </div>
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                            <p class="text-muted">Monthly purchase data visualization will be displayed here.</p>
+                            <canvas id="purchaseChart" height="250"></canvas>
+                        </div>
+                        <div class="card-footer text-center">
+                            <a href="{{ url_for('milk_buyer.analytics') }}" class="btn btn-sm btn-outline-primary">View Full Analytics</a>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <a href="{{ url_for('milk_buyer.suppliers') }}" class="btn btn-outline-primary w-100 py-3">
-                                <i class="fas fa-users fa-2x mb-2"></i><br>
-                                Suppliers List
-                            </a>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Quality Metrics</h5>
                         </div>
-                        <div class="col-md-12 mb-3">
-                            <a href="{{ url_for('milk_buyer.add_purchase') }}" class="btn btn-outline-success w-100 py-3">
-                                <i class="fas fa-shopping-cart fa-2x mb-2"></i><br>
-                                New Purchase
-                            </a>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Average Fat Percentage</label>
+                                <div class="progress">
+                                    {% set avg_fat = purchases|map(attribute='fat_percentage')|sum / purchases|length if purchases else 0 %}
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ avg_fat * 10 }}%;" aria-valuenow="{{ avg_fat }}" aria-valuemin="0" aria-valuemax="10">{{ "%.1f"|format(avg_fat) }}%</div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Average SNF Percentage</label>
+                                <div class="progress">
+                                    {% set avg_snf = purchases|map(attribute='snf_percentage')|sum / purchases|length if purchases else 0 %}
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ avg_snf * 10 }}%;" aria-valuenow="{{ avg_snf }}" aria-valuemin="0" aria-valuemax="10">{{ "%.1f"|format(avg_snf) }}%</div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Best Quality Provider</label>
+                                <div class="alert alert-info">
+                                    {% if purchases %}
+                                    <strong>{{ best_supplier if best_supplier else 'Not enough data' }}</strong>
+                                    {% else %}
+                                    <strong>No purchase data available</strong>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-12 mb-3">
-                            <a href="{{ url_for('milk_buyer.reports') }}" class="btn btn-outline-info w-100 py-3">
-                                <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
-                                View Reports
-                            </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Advanced Features</h5>
                         </div>
-                        <div class="col-md-12 mb-3">
-                            <a href="{{ url_for('milk_buyer.analytics') }}" class="btn btn-outline-primary w-100 py-3">
-                                <i class="fas fa-chart-line fa-2x mb-2"></i><br>
-                                Analytics Dashboard
-                            </a>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <a href="{{ url_for('milk_buyer.inventory') }}" class="btn btn-outline-success w-100 py-3">
-                                <i class="fas fa-boxes fa-2x mb-2"></i><br>
-                                Inventory Management
-                            </a>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <a href="{{ url_for('milk_buyer.suppliers') }}" class="btn btn-outline-primary w-100 py-3">
+                                        <i class="fas fa-users fa-2x mb-2"></i><br>
+                                        Suppliers Management
+                                    </a>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <a href="{{ url_for('milk_buyer.reports') }}" class="btn btn-outline-info w-100 py-3">
+                                        <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                                        Detailed Reports
+                                    </a>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <a href="{{ url_for('milk_buyer.analytics') }}" class="btn btn-outline-primary w-100 py-3">
+                                        <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                                        Analytics Dashboard
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -169,4 +226,51 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only initialize the chart if we're on the advanced tab
+        const advancedTab = document.getElementById('advanced-tab');
+        const chartCanvas = document.getElementById('purchaseChart');
+        
+        if (chartCanvas) {
+            const ctx = chartCanvas.getContext('2d');
+            
+            // Sample data - this would typically come from your Flask backend
+            const purchaseChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Purchase Volume (L)',
+                        data: [65, 59, 80, 81, 56, 55],
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Volume (L)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Show chart when advanced tab is clicked
+            advancedTab.addEventListener('shown.bs.tab', function (e) {
+                purchaseChart.update();
+            });
+        }
+    });
+</script>
 {% endblock %} 

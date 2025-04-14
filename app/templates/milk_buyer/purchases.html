@@ -93,14 +93,18 @@
                                     </td>
                                     <td>
                                         {% if not purchase.is_paid %}
-                                            <form method="POST" action="{{ url_for('milk_buyer.update_payment', purchase_id=purchase.id) }}" style="display: inline;">
-                                                <button type="submit" class="btn btn-sm btn-success">
-                                                    <i class="fas fa-check me-1"></i> Mark Paid
-                                                </button>
-                                            </form>
+                                        <form action="{{ url_for('milk_buyer.update_payment', purchase_id=purchase.id) }}" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success">Mark Paid</button>
+                                        </form>
                                         {% else %}
                                             <small class="text-muted">Paid on {{ purchase.payment_date.strftime('%d-%m-%Y') }}</small>
                                         {% endif %}
+                                        <a href="{{ url_for('milk_buyer.print_receipt', purchase_id=purchase.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-print"></i> Print
+                                        </a>
+                                        <a href="{{ url_for('milk_buyer.preview_receipt', purchase_id=purchase.id) }}" class="btn btn-sm btn-info" target="_blank">
+                                            <i class="fas fa-eye"></i> Preview
+                                        </a>
                                     </td>
                                 </tr>
                             {% endfor %}
